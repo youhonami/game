@@ -118,6 +118,8 @@ STYLE = """
 def render_page(title: str, heading: str, message: str, active_page: str = "") -> str:
     tetris_class = "active" if active_page == "tetris" else ""
     shooting_class = "active" if active_page == "shooting" else ""
+    puyopuyo_class = "active" if active_page == "puyopuyo" else ""
+    score_class = "active" if active_page == "score" else ""
     back_link = "" if not active_page else '<a class="back-link" href="/">トップページに戻る</a>'
 
     return f"""<!doctype html>
@@ -137,6 +139,8 @@ def render_page(title: str, heading: str, message: str, active_page: str = "") -
       <nav class="menu" aria-label="ゲームメニュー">
         <a class="{tetris_class}" href="/tetris">テトリス</a>
         <a class="{shooting_class}" href="/shooting">シューティング</a>
+        <a class="{puyopuyo_class}" href="/puyopuyo">ぷよぷよ</a>
+        <a class="{score_class}" href="/score">スコア</a>
       </nav>
     </aside>
     <main>
@@ -169,6 +173,18 @@ SHOOTING_HTML = render_page(
     message="このページの内容は後で作成します",
     active_page="shooting",
 )
+PUYOPUYO_HTML = render_page(
+    title="ぷよぷよ | Ocean Game Hub",
+    heading="ぷよぷよ",
+    message="このページの内容は後で作成します",
+    active_page="puyopuyo",
+)
+SCORE_HTML = render_page(
+    title="スコア | Ocean Game Hub",
+    heading="スコア",
+    message="このページの内容は後で作成します",
+    active_page="score",
+)
 
 
 class GameHubHandler(BaseHTTPRequestHandler):
@@ -185,6 +201,14 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/shooting":
             self._send_html(SHOOTING_HTML)
+            return
+
+        if path == "/puyopuyo":
+            self._send_html(PUYOPUYO_HTML)
+            return
+
+        if path == "/score":
+            self._send_html(SCORE_HTML)
             return
 
         if path == "/assets/background.png":

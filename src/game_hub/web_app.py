@@ -1,10 +1,13 @@
+import hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 HOST = "127.0.0.1"
 PORT = 8000
+OWNER_ADDRESS = "admin@estra.jp"
+OWNER_PASSWORD = "password"
 BACKGROUND_IMAGE_PATH = Path(
     "/Users/honamiyuusuke/.cursor/projects/"
     "Users-honamiyuusuke-coachtech-game/assets/"
@@ -32,7 +35,10 @@ STYLE = """
     }
 
     .sidebar {
+      display: flex;
+      flex-direction: column;
       width: 280px;
+      min-height: 100vh;
       padding: 42px 28px;
       background: rgba(4, 18, 36, 0.88);
       border-right: 2px solid rgba(120, 225, 255, 0.45);
@@ -53,6 +59,11 @@ STYLE = """
     .menu {
       display: grid;
       gap: 18px;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 32px;
     }
 
     .menu a {
@@ -104,6 +115,69 @@ STYLE = """
       font-weight: 700;
     }
 
+    .login-form {
+      display: grid;
+      gap: 18px;
+      margin: 30px auto 0;
+      max-width: 420px;
+      text-align: left;
+    }
+
+    .login-form label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .login-form input {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 18px;
+      background: rgba(0, 18, 40, 0.72);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .login-form input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
+    }
+
+    .login-form button {
+      margin-top: 8px;
+      padding: 15px 18px;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(28, 150, 205, 0.9);
+      border: 1px solid rgba(190, 245, 255, 0.9);
+      border-radius: 14px;
+    }
+
+    .helper-text {
+      margin-top: 20px;
+      color: #9feaff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .error-message {
+      margin: 24px auto 0;
+      max-width: 420px;
+      padding: 12px 14px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      background: rgba(210, 60, 80, 0.82);
+      border: 1px solid rgba(255, 190, 200, 0.9);
+      border-radius: 12px;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -115,12 +189,20 @@ STYLE = """
 """
 
 
-def render_page(title: str, heading: str, message: str, active_page: str = "") -> str:
+def render_page(
+    title: str,
+    heading: str,
+    message: str = "",
+    active_page: str = "",
+    body_html: str | None = None,
+) -> str:
     tetris_class = "active" if active_page == "tetris" else ""
     shooting_class = "active" if active_page == "shooting" else ""
     puyopuyo_class = "active" if active_page == "puyopuyo" else ""
     score_class = "active" if active_page == "score" else ""
+    owner_login_class = "active" if active_page == "owner-login" else ""
     back_link = "" if not active_page else '<a class="back-link" href="/">トップページに戻る</a>'
+    body = body_html if body_html is not None else f"<p>{message}</p>"
 
     return f"""<!doctype html>
 <html lang="ja">
@@ -142,11 +224,14 @@ def render_page(title: str, heading: str, message: str, active_page: str = "") -
         <a class="{puyopuyo_class}" href="/puyopuyo">ぷよぷよ</a>
         <a class="{score_class}" href="/score">スコア</a>
       </nav>
+      <nav class="menu sidebar-footer" aria-label="オーナーメニュー">
+        <a class="{owner_login_class}" href="/owner-login">オーナーログイン</a>
+      </nav>
     </aside>
     <main>
       <section class="hero">
         <h2>{heading}</h2>
-        <p>{message}</p>
+        {body}
         {back_link}
       </section>
     </main>
@@ -187,6 +272,39 @@ SCORE_HTML = render_page(
 )
 
 
+def render_owner_login_page(error_message: str = "") -> str:
+    error_html = f'<div class="error-message">{error_message}</div>' if error_message else ""
+
+    return render_page(
+        title="オーナーログイン | Ocean Game Hub",
+        heading="オーナーログイン",
+        active_page="owner-login",
+        body_html=f"""<p>管理機能へ進むにはログインしてください</p>
+        <form class="login-form" action="/owner-dashboard" method="post">
+          <label>
+            アドレス
+            <input type="email" name="address" autocomplete="email" required>
+          </label>
+          <label>
+            パスワード
+            <input type="password" name="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit">ログイン</button>
+        </form>
+        {error_html}
+        <div class="helper-text">管理画面の内容は後日作成します</div>""",
+    )
+
+
+OWNER_LOGIN_HTML = render_owner_login_page()
+OWNER_DASHBOARD_HTML = render_page(
+    title="管理ページ | Ocean Game Hub",
+    heading="管理ページ",
+    message="スコアデータ削除などの管理機能は後日作成します",
+    active_page="owner-login",
+)
+
+
 class GameHubHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
@@ -211,8 +329,35 @@ class GameHubHandler(BaseHTTPRequestHandler):
             self._send_html(SCORE_HTML)
             return
 
+        if path == "/owner-login":
+            self._send_html(OWNER_LOGIN_HTML)
+            return
+
+        if path == "/owner-dashboard":
+            self._send_html(OWNER_LOGIN_HTML)
+            return
+
         if path == "/assets/background.png":
             self._send_background()
+            return
+
+        self.send_error(404)
+
+    def do_POST(self) -> None:
+        path = urlparse(self.path).path
+
+        if path == "/owner-dashboard":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+            form = parse_qs(raw_body)
+            address = form.get("address", [""])[0]
+            password = form.get("password", [""])[0]
+
+            if is_owner_login(address, password):
+                self._send_html(OWNER_DASHBOARD_HTML)
+                return
+
+            self._send_html(render_owner_login_page("アドレスまたはパスワードが違います"))
             return
 
         self.send_error(404)
@@ -239,6 +384,13 @@ class GameHubHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+
+def is_owner_login(address: str, password: str) -> bool:
+    return hmac.compare_digest(address, OWNER_ADDRESS) and hmac.compare_digest(
+        password,
+        OWNER_PASSWORD,
+    )
 
 
 def main() -> None:

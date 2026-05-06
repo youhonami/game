@@ -26,6 +26,7 @@ python -m src.game_hub.web_app
 - `http://127.0.0.1:8000/shooting`
 - `http://127.0.0.1:8000/puyopuyo`
 - `http://127.0.0.1:8000/score`
+- `http://127.0.0.1:8000/owner-login`
 
 pygame のウィンドウで確認する場合:
 

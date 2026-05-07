@@ -178,6 +178,66 @@ STYLE = """
       border-radius: 12px;
     }
 
+    .game-panel {
+      display: grid;
+      grid-template-columns: auto 220px;
+      gap: 28px;
+      align-items: start;
+      margin-top: 28px;
+    }
+
+    .game-board {
+      width: 300px;
+      height: 600px;
+      background: rgba(0, 12, 28, 0.86);
+      border: 2px solid rgba(150, 235, 255, 0.85);
+      border-radius: 14px;
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.35);
+    }
+
+    .game-info {
+      display: grid;
+      gap: 14px;
+      text-align: left;
+    }
+
+    .info-card {
+      padding: 18px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 16px;
+    }
+
+    .info-card h3 {
+      margin: 0 0 10px;
+      color: #9feaff;
+      font-size: 18px;
+    }
+
+    .info-card p,
+    .info-card ul {
+      margin: 0;
+      color: #ffffff;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .info-card ul {
+      padding-left: 18px;
+    }
+
+    .primary-button {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(28, 150, 205, 0.9);
+      border: 1px solid rgba(190, 245, 255, 0.9);
+      border-radius: 14px;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -249,8 +309,282 @@ HOME_HTML = render_page(
 TETRIS_HTML = render_page(
     title="テトリス | Ocean Game Hub",
     heading="テトリス",
-    message="このページの内容は後で作成します",
     active_page="tetris",
+    body_html="""<p>ラインをそろえてスコアを伸ばしましょう</p>
+        <div class="game-panel">
+          <canvas class="game-board" id="tetris-board" width="300" height="600"></canvas>
+          <aside class="game-info">
+            <div class="info-card">
+              <h3>スコア</h3>
+              <p id="tetris-score">0</p>
+            </div>
+            <div class="info-card">
+              <h3>操作</h3>
+              <ul>
+                <li>← →: 移動</li>
+                <li>↓: 早く落とす</li>
+                <li>↑: 回転</li>
+                <li>Space: 一気に落とす</li>
+                <li>P: 一時停止</li>
+              </ul>
+            </div>
+            <div class="info-card">
+              <h3>状態</h3>
+              <p id="tetris-status">プレイ中</p>
+            </div>
+            <button class="primary-button" id="tetris-restart" type="button">リスタート</button>
+          </aside>
+        </div>
+        <script>
+          const canvas = document.getElementById("tetris-board");
+          const context = canvas.getContext("2d");
+          const scoreElement = document.getElementById("tetris-score");
+          const statusElement = document.getElementById("tetris-status");
+          const restartButton = document.getElementById("tetris-restart");
+
+          const columns = 10;
+          const rows = 20;
+          const blockSize = 30;
+          const colors = {
+            I: "#60e7ff",
+            J: "#5c8cff",
+            L: "#ffb347",
+            O: "#ffe45c",
+            S: "#5cff9d",
+            T: "#c77dff",
+            Z: "#ff5c7a",
+          };
+          const shapes = {
+            I: [[1, 1, 1, 1]],
+            J: [[1, 0, 0], [1, 1, 1]],
+            L: [[0, 0, 1], [1, 1, 1]],
+            O: [[1, 1], [1, 1]],
+            S: [[0, 1, 1], [1, 1, 0]],
+            T: [[0, 1, 0], [1, 1, 1]],
+            Z: [[1, 1, 0], [0, 1, 1]],
+          };
+
+          let board;
+          let piece;
+          let score;
+          let dropCounter;
+          let dropInterval;
+          let lastTime;
+          let isPaused;
+          let isGameOver;
+
+          function createBoard() {
+            return Array.from({ length: rows }, () => Array(columns).fill(""));
+          }
+
+          function createPiece() {
+            const names = Object.keys(shapes);
+            const name = names[Math.floor(Math.random() * names.length)];
+            const matrix = shapes[name].map((row) => [...row]);
+            return {
+              name,
+              matrix,
+              x: Math.floor(columns / 2) - Math.ceil(matrix[0].length / 2),
+              y: 0,
+            };
+          }
+
+          function rotate(matrix) {
+            return matrix[0].map((_, index) => matrix.map((row) => row[index]).reverse());
+          }
+
+          function hasCollision(target = piece) {
+            return target.matrix.some((row, y) =>
+              row.some((cell, x) => {
+                if (!cell) {
+                  return false;
+                }
+                const nextX = target.x + x;
+                const nextY = target.y + y;
+                return (
+                  nextX < 0 ||
+                  nextX >= columns ||
+                  nextY >= rows ||
+                  (nextY >= 0 && board[nextY][nextX])
+                );
+              })
+            );
+          }
+
+          function mergePiece() {
+            piece.matrix.forEach((row, y) => {
+              row.forEach((cell, x) => {
+                if (cell && piece.y + y >= 0) {
+                  board[piece.y + y][piece.x + x] = piece.name;
+                }
+              });
+            });
+          }
+
+          function clearLines() {
+            let cleared = 0;
+            for (let y = rows - 1; y >= 0; y -= 1) {
+              if (board[y].every(Boolean)) {
+                board.splice(y, 1);
+                board.unshift(Array(columns).fill(""));
+                cleared += 1;
+                y += 1;
+              }
+            }
+
+            if (cleared > 0) {
+              score += [0, 100, 300, 500, 800][cleared];
+              scoreElement.textContent = score;
+              dropInterval = Math.max(180, 800 - Math.floor(score / 500) * 50);
+            }
+          }
+
+          function movePiece(offsetX) {
+            piece.x += offsetX;
+            if (hasCollision()) {
+              piece.x -= offsetX;
+            }
+          }
+
+          function dropPiece() {
+            piece.y += 1;
+            if (hasCollision()) {
+              piece.y -= 1;
+              mergePiece();
+              clearLines();
+              piece = createPiece();
+              if (hasCollision()) {
+                isGameOver = true;
+                statusElement.textContent = "ゲームオーバー";
+              }
+            }
+            dropCounter = 0;
+          }
+
+          function rotatePiece() {
+            const originalMatrix = piece.matrix;
+            const originalX = piece.x;
+            piece.matrix = rotate(piece.matrix);
+
+            for (const offset of [0, -1, 1, -2, 2]) {
+              piece.x = originalX + offset;
+              if (!hasCollision()) {
+                return;
+              }
+            }
+
+            piece.matrix = originalMatrix;
+            piece.x = originalX;
+          }
+
+          function hardDrop() {
+            while (!hasCollision({ ...piece, y: piece.y + 1 })) {
+              piece.y += 1;
+              score += 2;
+            }
+            scoreElement.textContent = score;
+            dropPiece();
+          }
+
+          function drawCell(x, y, color) {
+            context.fillStyle = color;
+            context.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+            context.strokeStyle = "rgba(255, 255, 255, 0.18)";
+            context.lineWidth = 2;
+            context.strokeRect(x * blockSize + 1, y * blockSize + 1, blockSize - 2, blockSize - 2);
+          }
+
+          function draw() {
+            context.fillStyle = "rgba(0, 12, 28, 0.96)";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            board.forEach((row, y) => {
+              row.forEach((cell, x) => {
+                if (cell) {
+                  drawCell(x, y, colors[cell]);
+                }
+              });
+            });
+
+            piece.matrix.forEach((row, y) => {
+              row.forEach((cell, x) => {
+                if (cell) {
+                  drawCell(piece.x + x, piece.y + y, colors[piece.name]);
+                }
+              });
+            });
+          }
+
+          function update(time = 0) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            if (!isPaused && !isGameOver) {
+              dropCounter += deltaTime;
+              if (dropCounter > dropInterval) {
+                dropPiece();
+              }
+            }
+
+            draw();
+            requestAnimationFrame(update);
+          }
+
+          function startGame() {
+            board = createBoard();
+            piece = createPiece();
+            score = 0;
+            dropCounter = 0;
+            dropInterval = 800;
+            lastTime = 0;
+            isPaused = false;
+            isGameOver = false;
+            scoreElement.textContent = score;
+            statusElement.textContent = "プレイ中";
+          }
+
+          document.addEventListener("keydown", (event) => {
+            if (isGameOver && event.key !== "Enter") {
+              return;
+            }
+
+            if (event.key === "p" || event.key === "P") {
+              isPaused = !isPaused;
+              statusElement.textContent = isPaused ? "一時停止中" : "プレイ中";
+              return;
+            }
+
+            if (isPaused) {
+              return;
+            }
+
+            if (event.key === "ArrowLeft") {
+              movePiece(-1);
+              event.preventDefault();
+            } else if (event.key === "ArrowRight") {
+              movePiece(1);
+              event.preventDefault();
+            } else if (event.key === "ArrowDown") {
+              dropPiece();
+              score += 1;
+              scoreElement.textContent = score;
+              event.preventDefault();
+            } else if (event.key === "ArrowUp") {
+              rotatePiece();
+              event.preventDefault();
+            } else if (event.code === "Space") {
+              hardDrop();
+              event.preventDefault();
+            } else if (event.key === "Enter") {
+              startGame();
+            }
+          });
+
+          restartButton.addEventListener("click", startGame);
+
+          startGame();
+          update();
+        </script>""",
 )
 SHOOTING_HTML = render_page(
     title="シューティング | Ocean Game Hub",

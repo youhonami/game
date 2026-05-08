@@ -330,9 +330,9 @@ TETRIS_HTML = render_page(
             </div>
             <div class="info-card">
               <h3>状態</h3>
-              <p id="tetris-status">プレイ中</p>
+              <p id="tetris-status">スタート待ち</p>
             </div>
-            <button class="primary-button" id="tetris-restart" type="button">リスタート</button>
+            <button class="primary-button" id="tetris-restart" type="button">スタート</button>
           </aside>
         </div>
         <script>
@@ -370,6 +370,7 @@ TETRIS_HTML = render_page(
           let dropCounter;
           let dropInterval;
           let lastTime;
+          let hasStarted;
           let isPaused;
           let isGameOver;
 
@@ -506,20 +507,22 @@ TETRIS_HTML = render_page(
               });
             });
 
-            piece.matrix.forEach((row, y) => {
-              row.forEach((cell, x) => {
-                if (cell) {
-                  drawCell(piece.x + x, piece.y + y, colors[piece.name]);
-                }
+            if (piece) {
+              piece.matrix.forEach((row, y) => {
+                row.forEach((cell, x) => {
+                  if (cell) {
+                    drawCell(piece.x + x, piece.y + y, colors[piece.name]);
+                  }
+                });
               });
-            });
+            }
           }
 
           function update(time = 0) {
             const deltaTime = time - lastTime;
             lastTime = time;
 
-            if (!isPaused && !isGameOver) {
+            if (hasStarted && !isPaused && !isGameOver) {
               dropCounter += deltaTime;
               if (dropCounter > dropInterval) {
                 dropPiece();
@@ -537,13 +540,22 @@ TETRIS_HTML = render_page(
             dropCounter = 0;
             dropInterval = 800;
             lastTime = 0;
+            hasStarted = true;
             isPaused = false;
             isGameOver = false;
             scoreElement.textContent = score;
             statusElement.textContent = "プレイ中";
+            restartButton.textContent = "リスタート";
           }
 
           document.addEventListener("keydown", (event) => {
+            if (!hasStarted) {
+              if (event.key === "Enter") {
+                startGame();
+              }
+              return;
+            }
+
             if (isGameOver && event.key !== "Enter") {
               return;
             }
@@ -582,7 +594,17 @@ TETRIS_HTML = render_page(
 
           restartButton.addEventListener("click", startGame);
 
-          startGame();
+          board = createBoard();
+          piece = null;
+          score = 0;
+          dropCounter = 0;
+          dropInterval = 800;
+          lastTime = 0;
+          hasStarted = false;
+          isPaused = false;
+          isGameOver = false;
+          scoreElement.textContent = score;
+          draw();
           update();
         </script>""",
 )

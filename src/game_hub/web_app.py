@@ -323,8 +323,8 @@ TETRIS_HTML = render_page(
               <ul>
                 <li>← →: 移動</li>
                 <li>↓: 早く落とす</li>
-                <li>↑: 回転</li>
-                <li>Space: 一気に落とす</li>
+                <li>Space: 回転</li>
+                <li>↑: 一気に落とす</li>
                 <li>P: 一時停止</li>
               </ul>
             </div>
@@ -434,7 +434,7 @@ TETRIS_HTML = render_page(
             }
 
             if (cleared > 0) {
-              score += [0, 100, 300, 500, 800][cleared];
+              score += [0, 100, 250, 380, 500][cleared];
               scoreElement.textContent = score;
               dropInterval = Math.max(180, 800 - Math.floor(score / 500) * 50);
             }
@@ -481,9 +481,7 @@ TETRIS_HTML = render_page(
           function hardDrop() {
             while (!hasCollision({ ...piece, y: piece.y + 1 })) {
               piece.y += 1;
-              score += 2;
             }
-            scoreElement.textContent = score;
             dropPiece();
           }
 
@@ -578,14 +576,12 @@ TETRIS_HTML = render_page(
               event.preventDefault();
             } else if (event.key === "ArrowDown") {
               dropPiece();
-              score += 1;
-              scoreElement.textContent = score;
               event.preventDefault();
             } else if (event.key === "ArrowUp") {
-              rotatePiece();
+              hardDrop();
               event.preventDefault();
             } else if (event.code === "Space") {
-              hardDrop();
+              rotatePiece();
               event.preventDefault();
             } else if (event.key === "Enter") {
               startGame();

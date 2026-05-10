@@ -333,15 +333,21 @@ TETRIS_HTML = render_page(
               <p id="tetris-status">スタート待ち</p>
             </div>
             <button class="primary-button" id="tetris-restart" type="button">スタート</button>
+            <div class="info-card">
+              <h3>ハイスコア</h3>
+              <p id="tetris-high-score">0</p>
+            </div>
           </aside>
         </div>
         <script>
           const canvas = document.getElementById("tetris-board");
           const context = canvas.getContext("2d");
           const scoreElement = document.getElementById("tetris-score");
+          const highScoreElement = document.getElementById("tetris-high-score");
           const statusElement = document.getElementById("tetris-status");
           const restartButton = document.getElementById("tetris-restart");
 
+          const highScoreKey = "gameHubTetrisHighScore";
           const columns = 10;
           const rows = 20;
           const blockSize = 30;
@@ -367,6 +373,7 @@ TETRIS_HTML = render_page(
           let board;
           let piece;
           let score;
+          let highScore;
           let dropCounter;
           let dropInterval;
           let lastTime;
@@ -436,6 +443,7 @@ TETRIS_HTML = render_page(
             if (cleared > 0) {
               score += [0, 100, 250, 380, 500][cleared];
               scoreElement.textContent = score;
+              updateHighScore();
               dropInterval = Math.max(180, 800 - Math.floor(score / 500) * 50);
             }
           }
@@ -457,9 +465,20 @@ TETRIS_HTML = render_page(
               if (hasCollision()) {
                 isGameOver = true;
                 statusElement.textContent = "ゲームオーバー";
+                updateHighScore();
               }
             }
             dropCounter = 0;
+          }
+
+          function updateHighScore() {
+            if (score <= highScore) {
+              return;
+            }
+
+            highScore = score;
+            highScoreElement.textContent = highScore;
+            localStorage.setItem(highScoreKey, String(highScore));
           }
 
           function rotatePiece() {
@@ -593,6 +612,7 @@ TETRIS_HTML = render_page(
           board = createBoard();
           piece = null;
           score = 0;
+          highScore = Number(localStorage.getItem(highScoreKey) || 0);
           dropCounter = 0;
           dropInterval = 800;
           lastTime = 0;
@@ -600,6 +620,7 @@ TETRIS_HTML = render_page(
           isPaused = false;
           isGameOver = false;
           scoreElement.textContent = score;
+          highScoreElement.textContent = highScore;
           draw();
           update();
         </script>""",

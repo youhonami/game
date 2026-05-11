@@ -238,6 +238,78 @@ STYLE = """
       border-radius: 14px;
     }
 
+    .game-over-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 8, 20, 0.72);
+      z-index: 20;
+    }
+
+    .game-over-overlay[hidden] {
+      display: none;
+    }
+
+    .game-over-dialog {
+      width: min(430px, 100%);
+      padding: 34px;
+      text-align: center;
+      background: rgba(3, 24, 52, 0.96);
+      border: 1px solid rgba(150, 235, 255, 0.86);
+      border-radius: 24px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.52);
+    }
+
+    .game-over-dialog h3 {
+      margin: 0 0 14px;
+      font-size: 34px;
+    }
+
+    .game-over-score {
+      margin: 0 0 22px;
+      color: #9feaff;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .score-name-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .score-name-form label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .score-name-form input {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-align: center;
+      text-transform: uppercase;
+      background: rgba(0, 18, 40, 0.78);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .score-save-message {
+      min-height: 24px;
+      margin: 0;
+      color: #9feaff;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -335,22 +407,50 @@ TETRIS_HTML = render_page(
             <button class="primary-button" id="tetris-restart" type="button">スタート</button>
             <div class="info-card">
               <h3>ハイスコア</h3>
-              <p id="tetris-high-score">0</p>
+              <p><span id="tetris-high-score">0</span> / <span id="tetris-high-score-name">---</span></p>
             </div>
           </aside>
+        </div>
+        <div class="game-over-overlay" id="tetris-game-over" hidden>
+          <div class="game-over-dialog" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+            <h3 id="game-over-title">ゲームオーバー</h3>
+            <p class="game-over-score">達成スコア: <span id="tetris-final-score">0</span></p>
+            <form class="score-name-form" id="tetris-score-form">
+              <label>
+                プレイヤー名（3文字）
+                <input id="tetris-player-name" name="player-name" maxlength="3" autocomplete="off" required>
+              </label>
+              <button class="primary-button" type="submit">登録</button>
+              <p class="score-save-message" id="tetris-score-save-message"></p>
+              <button class="primary-button" id="tetris-play-again" type="button">もう一度遊ぶ</button>
+            </form>
+          </div>
         </div>
         <script>
           const canvas = document.getElementById("tetris-board");
           const context = canvas.getContext("2d");
           const scoreElement = document.getElementById("tetris-score");
           const highScoreElement = document.getElementById("tetris-high-score");
+          const highScoreNameElement = document.getElementById("tetris-high-score-name");
           const statusElement = document.getElementById("tetris-status");
           const restartButton = document.getElementById("tetris-restart");
+          const gameOverOverlay = document.getElementById("tetris-game-over");
+          const finalScoreElement = document.getElementById("tetris-final-score");
+          const scoreForm = document.getElementById("tetris-score-form");
+          const playerNameInput = document.getElementById("tetris-player-name");
+          const scoreSaveMessage = document.getElementById("tetris-score-save-message");
+          const playAgainButton = document.getElementById("tetris-play-again");
 
           const highScoreKey = "gameHubTetrisHighScore";
+          const highScoreNameKey = "gameHubTetrisHighScoreName";
+          const rankingKey = "gameHubTetrisRanking";
           const columns = 10;
           const rows = 20;
           const blockSize = 30;
+          const baseDropInterval = 800;
+          const minDropInterval = 120;
+          const speedUpScoreStep = 500;
+          const dropIntervalStep = 100;
           const colors = {
             I: "#60e7ff",
             J: "#5c8cff",
@@ -374,6 +474,7 @@ TETRIS_HTML = render_page(
           let piece;
           let score;
           let highScore;
+          let highScoreName;
           let dropCounter;
           let dropInterval;
           let lastTime;
@@ -444,8 +545,16 @@ TETRIS_HTML = render_page(
               score += [0, 100, 250, 380, 500][cleared];
               scoreElement.textContent = score;
               updateHighScore();
-              dropInterval = Math.max(180, 800 - Math.floor(score / 500) * 50);
+              updateDropSpeed();
             }
+          }
+
+          function updateDropSpeed() {
+            const speedLevel = Math.floor(score / speedUpScoreStep);
+            dropInterval = Math.max(
+              minDropInterval,
+              baseDropInterval - speedLevel * dropIntervalStep,
+            );
           }
 
           function movePiece(offsetX) {
@@ -466,6 +575,7 @@ TETRIS_HTML = render_page(
                 isGameOver = true;
                 statusElement.textContent = "ゲームオーバー";
                 updateHighScore();
+                showGameOverDialog();
               }
             }
             dropCounter = 0;
@@ -477,8 +587,49 @@ TETRIS_HTML = render_page(
             }
 
             highScore = score;
+            highScoreName = "";
             highScoreElement.textContent = highScore;
+            highScoreNameElement.textContent = "登録待ち";
             localStorage.setItem(highScoreKey, String(highScore));
+            localStorage.removeItem(highScoreNameKey);
+          }
+
+          function showGameOverDialog() {
+            finalScoreElement.textContent = score;
+            scoreSaveMessage.textContent = "";
+            playerNameInput.value = "";
+            gameOverOverlay.hidden = false;
+            playerNameInput.focus();
+          }
+
+          function hideGameOverDialog() {
+            gameOverOverlay.hidden = true;
+          }
+
+          function saveScoreEntry(playerName) {
+            const ranking = JSON.parse(localStorage.getItem(rankingKey) || "[]");
+            ranking.push({
+              name: playerName,
+              score,
+              playedAt: new Date().toISOString(),
+            });
+            ranking.sort((left, right) => right.score - left.score);
+            localStorage.setItem(rankingKey, JSON.stringify(ranking.slice(0, 50)));
+
+            if (score >= highScore && score > 0) {
+              highScore = score;
+              highScoreName = playerName;
+              highScoreElement.textContent = highScore;
+              highScoreNameElement.textContent = highScoreName;
+              localStorage.setItem(highScoreKey, String(highScore));
+              localStorage.setItem(highScoreNameKey, highScoreName);
+            }
+          }
+
+          function findHighScoreName(targetScore) {
+            const ranking = JSON.parse(localStorage.getItem(rankingKey) || "[]");
+            const matchedEntry = ranking.find((entry) => entry.score === targetScore);
+            return matchedEntry ? matchedEntry.name : "";
           }
 
           function rotatePiece() {
@@ -555,7 +706,7 @@ TETRIS_HTML = render_page(
             piece = createPiece();
             score = 0;
             dropCounter = 0;
-            dropInterval = 800;
+            dropInterval = baseDropInterval;
             lastTime = 0;
             hasStarted = true;
             isPaused = false;
@@ -563,9 +714,14 @@ TETRIS_HTML = render_page(
             scoreElement.textContent = score;
             statusElement.textContent = "プレイ中";
             restartButton.textContent = "リスタート";
+            hideGameOverDialog();
           }
 
           document.addEventListener("keydown", (event) => {
+            if (event.target.closest("#tetris-game-over")) {
+              return;
+            }
+
             if (!hasStarted) {
               if (event.key === "Enter") {
                 startGame();
@@ -573,7 +729,7 @@ TETRIS_HTML = render_page(
               return;
             }
 
-            if (isGameOver && event.key !== "Enter") {
+            if (isGameOver) {
               return;
             }
 
@@ -608,19 +764,36 @@ TETRIS_HTML = render_page(
           });
 
           restartButton.addEventListener("click", startGame);
+          playAgainButton.addEventListener("click", startGame);
+          playerNameInput.addEventListener("input", () => {
+            playerNameInput.value = playerNameInput.value.slice(0, 3).toUpperCase();
+          });
+          scoreForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const playerName = playerNameInput.value.trim().toUpperCase();
+            if (!playerName) {
+              scoreSaveMessage.textContent = "名前を入力してください";
+              return;
+            }
+
+            saveScoreEntry(playerName);
+            scoreSaveMessage.textContent = "スコアを登録しました";
+          });
 
           board = createBoard();
           piece = null;
           score = 0;
           highScore = Number(localStorage.getItem(highScoreKey) || 0);
+          highScoreName = localStorage.getItem(highScoreNameKey) || findHighScoreName(highScore);
           dropCounter = 0;
-          dropInterval = 800;
+          dropInterval = baseDropInterval;
           lastTime = 0;
           hasStarted = false;
           isPaused = false;
           isGameOver = false;
           scoreElement.textContent = score;
           highScoreElement.textContent = highScore;
+          highScoreNameElement.textContent = highScoreName || (highScore > 0 ? "登録待ち" : "---");
           draw();
           update();
         </script>""",

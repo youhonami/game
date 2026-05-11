@@ -259,7 +259,7 @@ def render_page(
     tetris_class = "active" if active_page == "tetris" else ""
     shooting_class = "active" if active_page == "shooting" else ""
     puyopuyo_class = "active" if active_page == "puyopuyo" else ""
-    score_class = "active" if active_page == "score" else ""
+    ranking_class = "active" if active_page == "ranking" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
     back_link = "" if not active_page else '<a class="back-link" href="/">トップページに戻る</a>'
     body = body_html if body_html is not None else f"<p>{message}</p>"
@@ -282,7 +282,7 @@ def render_page(
         <a class="{tetris_class}" href="/tetris">テトリス</a>
         <a class="{shooting_class}" href="/shooting">シューティング</a>
         <a class="{puyopuyo_class}" href="/puyopuyo">ぷよぷよ</a>
-        <a class="{score_class}" href="/score">スコア</a>
+        <a class="{ranking_class}" href="/ranking">ランキング</a>
       </nav>
       <nav class="menu sidebar-footer" aria-label="オーナーメニュー">
         <a class="{owner_login_class}" href="/owner-login">オーナーログイン</a>
@@ -637,11 +637,11 @@ PUYOPUYO_HTML = render_page(
     message="このページの内容は後で作成します",
     active_page="puyopuyo",
 )
-SCORE_HTML = render_page(
-    title="スコア | Ocean Game Hub",
-    heading="スコア",
+RANKING_HTML = render_page(
+    title="ランキング | Ocean Game Hub",
+    heading="ランキング",
     message="このページの内容は後で作成します",
-    active_page="score",
+    active_page="ranking",
 )
 
 
@@ -698,8 +698,8 @@ class GameHubHandler(BaseHTTPRequestHandler):
             self._send_html(PUYOPUYO_HTML)
             return
 
-        if path == "/score":
-            self._send_html(SCORE_HTML)
+        if path in {"/ranking", "/score"}:
+            self._send_html(RANKING_HTML)
             return
 
         if path == "/owner-login":

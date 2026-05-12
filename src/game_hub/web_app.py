@@ -310,6 +310,58 @@ STYLE = """
       font-weight: 700;
     }
 
+    .ranking-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(190px, 1fr));
+      gap: 18px;
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .ranking-card {
+      padding: 20px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .ranking-card h3 {
+      margin: 0 0 14px;
+      color: #9feaff;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .ranking-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .ranking-list li {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      background: rgba(4, 32, 64, 0.78);
+      border: 1px solid rgba(150, 235, 255, 0.28);
+      border-radius: 12px;
+    }
+
+    .ranking-empty {
+      margin: 0;
+      color: #d8f7ff;
+      font-size: 15px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -813,8 +865,63 @@ PUYOPUYO_HTML = render_page(
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",
     heading="ランキング",
-    message="このページの内容は後で作成します",
     active_page="ranking",
+    body_html="""<p>各ゲームのランキングトップ5を表示します</p>
+        <div class="ranking-grid">
+          <section class="ranking-card">
+            <h3>テトリス</h3>
+            <ol class="ranking-list" id="ranking-tetris"></ol>
+          </section>
+          <section class="ranking-card">
+            <h3>シューティング</h3>
+            <ol class="ranking-list" id="ranking-shooting"></ol>
+          </section>
+          <section class="ranking-card">
+            <h3>ぷよぷよ</h3>
+            <ol class="ranking-list" id="ranking-puyopuyo"></ol>
+          </section>
+        </div>
+        <script>
+          const rankingSources = [
+            { elementId: "ranking-tetris", storageKey: "gameHubTetrisRanking" },
+            { elementId: "ranking-shooting", storageKey: "gameHubShootingRanking" },
+            { elementId: "ranking-puyopuyo", storageKey: "gameHubPuyopuyoRanking" },
+          ];
+
+          function loadRanking(storageKey) {
+            try {
+              const ranking = JSON.parse(localStorage.getItem(storageKey) || "[]");
+              return Array.isArray(ranking) ? ranking : [];
+            } catch {
+              return [];
+            }
+          }
+
+          function renderRanking({ elementId, storageKey }) {
+            const listElement = document.getElementById(elementId);
+            const topScores = loadRanking(storageKey)
+              .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
+              .sort((left, right) => Number(right.score) - Number(left.score))
+              .slice(0, 5);
+
+            if (topScores.length === 0) {
+              listElement.outerHTML = '<p class="ranking-empty">まだ記録がありません</p>';
+              return;
+            }
+
+            listElement.innerHTML = topScores
+              .map((entry, index) => `
+                <li>
+                  <span>${index + 1}位</span>
+                  <span>${String(entry.name).slice(0, 3)}</span>
+                  <span>${Number(entry.score)}</span>
+                </li>
+              `)
+              .join("");
+          }
+
+          rankingSources.forEach(renderRanking);
+        </script>""",
 )
 
 

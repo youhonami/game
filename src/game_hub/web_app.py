@@ -934,6 +934,7 @@ PUYOPUYO_HTML = render_page(
           const minDropInterval = 160;
           const speedUpScoreStep = 500;
           const dropIntervalStep = 70;
+          const chainScoreTable = [0, 20, 50, 90, 140, 200, 270, 350, 440, 540, 650];
           const colors = ["red", "green", "blue", "yellow", "purple"];
           const colorMap = {
             red: "#ff5c7a",
@@ -1096,14 +1097,12 @@ PUYOPUYO_HTML = render_page(
 
               chain += 1;
               clearedAny = true;
-              let clearedCount = 0;
               groups.forEach((group) => {
-                clearedCount += group.length;
                 group.forEach((cell) => {
                   board[cell.y][cell.x] = "";
                 });
               });
-              score += clearedCount * 10 * chain;
+              score += chainScoreTable[Math.min(chain, 10)];
               scoreElement.textContent = score;
               updateHighScore();
               applyGravity();

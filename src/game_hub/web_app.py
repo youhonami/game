@@ -872,6 +872,7 @@ PUYOPUYO_HTML = render_page(
             <div class="info-card">
               <h3>スコア</h3>
               <p id="puyo-score">0</p>
+              <p id="puyo-chain">0連鎖</p>
             </div>
             <div class="info-card">
               <h3>操作</h3>
@@ -916,6 +917,7 @@ PUYOPUYO_HTML = render_page(
           const highScoreElement = document.getElementById("puyo-high-score");
           const highScoreNameElement = document.getElementById("puyo-high-score-name");
           const statusElement = document.getElementById("puyo-status");
+          const chainElement = document.getElementById("puyo-chain");
           const restartButton = document.getElementById("puyo-restart");
           const gameOverOverlay = document.getElementById("puyo-game-over");
           const finalScoreElement = document.getElementById("puyo-final-score");
@@ -955,9 +957,16 @@ PUYOPUYO_HTML = render_page(
           let hasStarted;
           let isPaused;
           let isGameOver;
+          let isResolving;
 
           function createBoard() {
             return Array.from({ length: rows }, () => Array(columns).fill(""));
+          }
+
+          function delay(milliseconds) {
+            return new Promise((resolve) => {
+              setTimeout(resolve, milliseconds);
+            });
           }
 
           function randomColor() {
@@ -1085,7 +1094,7 @@ PUYOPUYO_HTML = render_page(
             return groups;
           }
 
-          function clearGroups() {
+          async function clearGroups() {
             let chain = 0;
             let clearedAny = false;
 
@@ -1097,6 +1106,10 @@ PUYOPUYO_HTML = render_page(
 
               chain += 1;
               clearedAny = true;
+              statusElement.textContent = `${chain}連鎖`;
+              chainElement.textContent = `${chain}連鎖`;
+              await delay(450);
+
               groups.forEach((group) => {
                 group.forEach((cell) => {
                   board[cell.y][cell.x] = "";
@@ -1105,12 +1118,19 @@ PUYOPUYO_HTML = render_page(
               score += chainScoreTable[Math.min(chain, 10)];
               scoreElement.textContent = score;
               updateHighScore();
+              await delay(250);
               applyGravity();
+              await delay(350);
             }
 
             if (clearedAny) {
               updateDropSpeed();
+              statusElement.textContent = "プレイ中";
+            } else {
+              chainElement.textContent = "0連鎖";
             }
+
+            return clearedAny;
           }
 
           function updateDropSpeed() {
@@ -1121,7 +1141,11 @@ PUYOPUYO_HTML = render_page(
             );
           }
 
-          function dropPair() {
+          async function dropPair() {
+            if (isResolving) {
+              return;
+            }
+
             const nextPair = { ...pair, y: pair.y + 1 };
             if (!hasCollision(nextPair)) {
               pair = nextPair;
@@ -1130,8 +1154,14 @@ PUYOPUYO_HTML = render_page(
             }
 
             mergePair();
+            pair = null;
             applyGravity();
-            clearGroups();
+            isResolving = true;
+            const clearedAny = await clearGroups();
+            isResolving = false;
+            if (!clearedAny) {
+              chainElement.textContent = "0連鎖";
+            }
             pair = createPair();
             if (hasCollision()) {
               isGameOver = true;
@@ -1142,11 +1172,15 @@ PUYOPUYO_HTML = render_page(
             dropCounter = 0;
           }
 
-          function hardDrop() {
+          async function hardDrop() {
+            if (isResolving) {
+              return;
+            }
+
             while (!hasCollision({ ...pair, y: pair.y + 1 })) {
               pair = { ...pair, y: pair.y + 1 };
             }
-            dropPair();
+            await dropPair();
           }
 
           function updateHighScore() {
@@ -1252,7 +1286,7 @@ PUYOPUYO_HTML = render_page(
             const deltaTime = time - lastTime;
             lastTime = time;
 
-            if (hasStarted && !isPaused && !isGameOver) {
+            if (hasStarted && !isPaused && !isGameOver && !isResolving) {
               dropCounter += deltaTime;
               if (dropCounter > dropInterval) {
                 dropPair();
@@ -1273,7 +1307,9 @@ PUYOPUYO_HTML = render_page(
             hasStarted = true;
             isPaused = false;
             isGameOver = false;
+            isResolving = false;
             scoreElement.textContent = score;
+            chainElement.textContent = "0連鎖";
             statusElement.textContent = "プレイ中";
             restartButton.textContent = "リスタート";
             hideGameOverDialog();
@@ -1291,7 +1327,7 @@ PUYOPUYO_HTML = render_page(
               return;
             }
 
-            if (isGameOver) {
+            if (isGameOver || isResolving) {
               return;
             }
 
@@ -1353,7 +1389,9 @@ PUYOPUYO_HTML = render_page(
           hasStarted = false;
           isPaused = false;
           isGameOver = false;
+          isResolving = false;
           scoreElement.textContent = score;
+          chainElement.textContent = "0連鎖";
           highScoreElement.textContent = highScore;
           highScoreNameElement.textContent = highScoreName || (highScore > 0 ? "登録待ち" : "---");
           draw();

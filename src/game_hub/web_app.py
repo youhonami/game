@@ -958,6 +958,7 @@ PUYOPUYO_HTML = render_page(
           let isPaused;
           let isGameOver;
           let isResolving;
+          let clearingCells;
 
           function createBoard() {
             return Array.from({ length: rows }, () => Array(columns).fill(""));
@@ -967,6 +968,10 @@ PUYOPUYO_HTML = render_page(
             return new Promise((resolve) => {
               setTimeout(resolve, milliseconds);
             });
+          }
+
+          function flattenGroups(groups) {
+            return groups.flatMap((group) => group);
           }
 
           function randomColor() {
@@ -1108,7 +1113,7 @@ PUYOPUYO_HTML = render_page(
               clearedAny = true;
               statusElement.textContent = `${chain}連鎖`;
               chainElement.textContent = `${chain}連鎖`;
-              await delay(450);
+              await animateClearing(flattenGroups(groups));
 
               groups.forEach((group) => {
                 group.forEach((cell) => {
@@ -1234,17 +1239,35 @@ PUYOPUYO_HTML = render_page(
             return matchedEntry ? matchedEntry.name : "";
           }
 
-          function drawPuyo(x, y, color) {
+          async function animateClearing(cells) {
+            for (let frame = 0; frame < 6; frame += 1) {
+              clearingCells = cells.map((cell) => ({
+                ...cell,
+                scale: frame % 2 === 0 ? 1.18 : 0.72,
+                alpha: frame % 2 === 0 ? 1 : 0.45,
+              }));
+              draw();
+              await delay(90);
+            }
+
+            clearingCells = [];
+            draw();
+          }
+
+          function drawPuyo(x, y, color, scale = 1, alpha = 1) {
             const centerX = x * cellSize + cellSize / 2;
             const centerY = y * cellSize + cellSize / 2;
+            context.save();
+            context.globalAlpha = alpha;
             context.fillStyle = colorMap[color];
             context.beginPath();
-            context.arc(centerX, centerY, cellSize * 0.42, 0, Math.PI * 2);
+            context.arc(centerX, centerY, cellSize * 0.42 * scale, 0, Math.PI * 2);
             context.fill();
             context.fillStyle = "rgba(255, 255, 255, 0.45)";
             context.beginPath();
-            context.arc(centerX - 7, centerY - 8, cellSize * 0.12, 0, Math.PI * 2);
+            context.arc(centerX - 7 * scale, centerY - 8 * scale, cellSize * 0.12 * scale, 0, Math.PI * 2);
             context.fill();
+            context.restore();
           }
 
           function draw() {
@@ -1268,6 +1291,11 @@ PUYOPUYO_HTML = render_page(
             board.forEach((row, y) => {
               row.forEach((color, x) => {
                 if (color) {
+                  const clearingCell = clearingCells.find((cell) => cell.x === x && cell.y === y);
+                  if (clearingCell) {
+                    drawPuyo(x, y, color, clearingCell.scale, clearingCell.alpha);
+                    return;
+                  }
                   drawPuyo(x, y, color);
                 }
               });
@@ -1308,6 +1336,7 @@ PUYOPUYO_HTML = render_page(
             isPaused = false;
             isGameOver = false;
             isResolving = false;
+            clearingCells = [];
             scoreElement.textContent = score;
             chainElement.textContent = "0連鎖";
             statusElement.textContent = "プレイ中";
@@ -1390,6 +1419,7 @@ PUYOPUYO_HTML = render_page(
           isPaused = false;
           isGameOver = false;
           isResolving = false;
+          clearingCells = [];
           scoreElement.textContent = score;
           chainElement.textContent = "0連鎖";
           highScoreElement.textContent = highScore;

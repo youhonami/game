@@ -388,6 +388,7 @@ def render_page(
     tetris_class = "active" if active_page == "tetris" else ""
     shooting_class = "active" if active_page == "shooting" else ""
     puyopuyo_class = "active" if active_page == "puyopuyo" else ""
+    breakout_class = "active" if active_page == "breakout" else ""
     ranking_class = "active" if active_page == "ranking" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
     back_link = "" if not active_page else '<a class="back-link" href="/">トップページに戻る</a>'
@@ -411,6 +412,7 @@ def render_page(
         <a class="{tetris_class}" href="/tetris">テトリス</a>
         <a class="{shooting_class}" href="/shooting">シューティング</a>
         <a class="{puyopuyo_class}" href="/puyopuyo">ぷよぷよ</a>
+        <a class="{breakout_class}" href="/breakout">ブロック崩し</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
       </nav>
       <nav class="menu sidebar-footer" aria-label="オーナーメニュー">
@@ -1428,6 +1430,12 @@ PUYOPUYO_HTML = render_page(
           update();
         </script>""",
 )
+BREAKOUT_HTML = render_page(
+    title="ブロック崩し | Ocean Game Hub",
+    heading="ブロック崩し",
+    message="このページの内容は後で作成します",
+    active_page="breakout",
+)
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",
     heading="ランキング",
@@ -1542,6 +1550,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/puyopuyo":
             self._send_html(PUYOPUYO_HTML)
+            return
+
+        if path == "/breakout":
+            self._send_html(BREAKOUT_HTML)
             return
 
         if path in {"/ranking", "/score"}:

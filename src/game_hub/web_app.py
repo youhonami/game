@@ -1454,12 +1454,17 @@ RANKING_HTML = render_page(
             <h3>ぷよぷよ</h3>
             <ol class="ranking-list" id="ranking-puyopuyo"></ol>
           </section>
+          <section class="ranking-card">
+            <h3>ブロック崩し</h3>
+            <ol class="ranking-list" id="ranking-breakout"></ol>
+          </section>
         </div>
         <script>
           const rankingSources = [
             { elementId: "ranking-tetris", storageKey: "gameHubTetrisRanking" },
             { elementId: "ranking-shooting", storageKey: "gameHubShootingRanking" },
             { elementId: "ranking-puyopuyo", storageKey: "gameHubPuyopuyoRanking" },
+            { elementId: "ranking-breakout", storageKey: "gameHubBreakoutRanking" },
           ];
 
           function loadRanking(storageKey) {

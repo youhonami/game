@@ -873,6 +873,7 @@ SHOOTING_HTML = render_page(
             <div class="info-card">
               <h3>スコア</h3>
               <p id="shooting-score">0</p>
+              <p>ステージ <span id="shooting-stage">1</span></p>
             </div>
             <div class="info-card">
               <h3>操作</h3>
@@ -912,6 +913,7 @@ SHOOTING_HTML = render_page(
           const canvas = document.getElementById("shooting-board");
           const context = canvas.getContext("2d");
           const scoreElement = document.getElementById("shooting-score");
+          const stageElement = document.getElementById("shooting-stage");
           const highScoreElement = document.getElementById("shooting-high-score");
           const highScoreNameElement = document.getElementById("shooting-high-score-name");
           const statusElement = document.getElementById("shooting-status");
@@ -929,7 +931,8 @@ SHOOTING_HTML = render_page(
           const playerWidth = 46;
           const playerHeight = 22;
           const bulletSpeed = 7;
-          const enemyBulletSpeed = 3.2;
+          const baseEnemyBulletSpeed = 3.2;
+          const baseEnemyFireInterval = 52;
           const enemyWidth = 32;
           const enemyHeight = 24;
           const enemyRows = 4;
@@ -943,6 +946,7 @@ SHOOTING_HTML = render_page(
           let enemyMoveTimer;
           let enemyMoveInterval;
           let enemyFireTimer;
+          let stage;
           let score;
           let highScore;
           let highScoreName;
@@ -1076,7 +1080,7 @@ SHOOTING_HTML = render_page(
             bullets = bullets.filter((bullet) => bullet.y + bullet.height > 0);
 
             enemyBullets.forEach((bullet) => {
-              bullet.y += enemyBulletSpeed;
+              bullet.y += bullet.speed;
             });
             enemyBullets = enemyBullets.filter((bullet) => bullet.y < canvas.height);
           }
@@ -1108,7 +1112,11 @@ SHOOTING_HTML = render_page(
 
           function updateEnemyFire() {
             enemyFireTimer += 1;
-            if (enemyFireTimer < 52 || enemies.length === 0) {
+            const enemyFireInterval = Math.max(
+              16,
+              baseEnemyFireInterval - (stage - 1) * 6,
+            );
+            if (enemyFireTimer < enemyFireInterval || enemies.length === 0) {
               return;
             }
             enemyFireTimer = 0;
@@ -1119,7 +1127,20 @@ SHOOTING_HTML = render_page(
               y: shooter.y + shooter.height,
               width: 6,
               height: 12,
+              speed: baseEnemyBulletSpeed + (stage - 1) * 0.45,
             });
+          }
+
+          function advanceStage() {
+            stage += 1;
+            stageElement.textContent = stage;
+            statusElement.textContent = `ステージ ${stage}`;
+            enemies = createEnemies();
+            enemyBullets = [];
+            enemyDirection = stage % 2 === 0 ? -1 : 1;
+            enemyMoveTimer = 0;
+            enemyFireTimer = 0;
+            enemyMoveInterval = Math.max(8, 34 - (stage - 1) * 3);
           }
 
           function resolveCollisions() {
@@ -1147,12 +1168,10 @@ SHOOTING_HTML = render_page(
             }
 
             if (enemies.length === 0) {
-              score += 200;
+              score += 200 + (stage - 1) * 50;
               scoreElement.textContent = score;
               updateHighScore();
-              enemies = createEnemies();
-              enemyBullets = [];
-              enemyMoveInterval = Math.max(8, enemyMoveInterval - 4);
+              advanceStage();
             }
           }
 
@@ -1228,11 +1247,13 @@ SHOOTING_HTML = render_page(
             enemyMoveTimer = 0;
             enemyMoveInterval = 34;
             enemyFireTimer = 0;
+            stage = 1;
             score = 0;
             hasStarted = true;
             isPaused = false;
             isGameOver = false;
             scoreElement.textContent = score;
+            stageElement.textContent = stage;
             statusElement.textContent = "プレイ中";
             restartButton.textContent = "リスタート";
             hideGameOverDialog();
@@ -1309,6 +1330,7 @@ SHOOTING_HTML = render_page(
           enemyMoveTimer = 0;
           enemyMoveInterval = 34;
           enemyFireTimer = 0;
+          stage = 1;
           score = 0;
           highScore = Number(localStorage.getItem(highScoreKey) || 0);
           highScoreName = localStorage.getItem(highScoreNameKey) || findHighScoreName(highScore);
@@ -1317,6 +1339,7 @@ SHOOTING_HTML = render_page(
           isGameOver = false;
           keys = {};
           scoreElement.textContent = score;
+          stageElement.textContent = stage;
           highScoreElement.textContent = highScore;
           highScoreNameElement.textContent = highScoreName || (highScore > 0 ? "登録待ち" : "---");
           draw();

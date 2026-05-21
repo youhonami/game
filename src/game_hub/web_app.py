@@ -662,6 +662,7 @@ TETRIS_HTML = render_page(
             finalScoreElement.textContent = score;
             scoreSaveMessage.textContent = "";
             playerNameInput.value = "";
+            scoreForm.querySelector('button[type="submit"]').hidden = false;
             gameOverOverlay.hidden = false;
             playerNameInput.focus();
           }
@@ -842,6 +843,7 @@ TETRIS_HTML = render_page(
 
             saveScoreEntry(playerName);
             scoreSaveMessage.textContent = "スコアを登録しました";
+            scoreForm.querySelector('button[type="submit"]').hidden = true;
           });
 
           board = createBoard();
@@ -1003,6 +1005,7 @@ SHOOTING_HTML = render_page(
             finalScoreElement.textContent = score;
             scoreSaveMessage.textContent = "";
             playerNameInput.value = "";
+            scoreForm.querySelector('button[type="submit"]').hidden = false;
             gameOverOverlay.hidden = false;
             playerNameInput.focus();
           }
@@ -1313,6 +1316,7 @@ SHOOTING_HTML = render_page(
 
             saveScoreEntry(playerName);
             scoreSaveMessage.textContent = "スコアを登録しました";
+            scoreForm.querySelector('button[type="submit"]').hidden = true;
           });
 
           player = {
@@ -1690,6 +1694,7 @@ PUYOPUYO_HTML = render_page(
             finalScoreElement.textContent = score;
             scoreSaveMessage.textContent = "";
             playerNameInput.value = "";
+            scoreForm.querySelector('button[type="submit"]').hidden = false;
             gameOverOverlay.hidden = false;
             playerNameInput.focus();
           }
@@ -1890,6 +1895,7 @@ PUYOPUYO_HTML = render_page(
 
             saveScoreEntry(playerName);
             scoreSaveMessage.textContent = "スコアを登録しました";
+            scoreForm.querySelector('button[type="submit"]').hidden = true;
           });
 
           board = createBoard();

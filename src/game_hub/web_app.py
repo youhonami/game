@@ -237,11 +237,14 @@ STYLE = """
     }
 
     .primary-button {
+      display: block;
       width: 100%;
       padding: 14px 16px;
       color: #ffffff;
       font-size: 17px;
       font-weight: 700;
+      text-align: center;
+      text-decoration: none;
       cursor: pointer;
       background: rgba(28, 150, 205, 0.9);
       border: 1px solid rgba(190, 245, 255, 0.9);
@@ -487,6 +490,7 @@ TETRIS_HTML = render_page(
               <button class="primary-button" type="submit">登録</button>
               <p class="score-save-message" id="tetris-score-save-message"></p>
               <button class="primary-button" id="tetris-play-again" type="button">もう一度遊ぶ</button>
+              <a class="primary-button" href="/">別のゲームで遊ぶ</a>
             </form>
           </div>
         </div>
@@ -908,6 +912,7 @@ SHOOTING_HTML = render_page(
               <button class="primary-button" type="submit">登録</button>
               <p class="score-save-message" id="shooting-score-save-message"></p>
               <button class="primary-button" id="shooting-play-again" type="button">もう一度遊ぶ</button>
+              <a class="primary-button" href="/">別のゲームで遊ぶ</a>
             </form>
           </div>
         </div>
@@ -1396,6 +1401,7 @@ PUYOPUYO_HTML = render_page(
               <button class="primary-button" type="submit">登録</button>
               <p class="score-save-message" id="puyo-score-save-message"></p>
               <button class="primary-button" id="puyo-play-again" type="button">もう一度遊ぶ</button>
+              <a class="primary-button" href="/">別のゲームで遊ぶ</a>
             </form>
           </div>
         </div>

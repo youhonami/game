@@ -1093,6 +1093,14 @@ SHOOTING_HTML = render_page(
             enemyBullets = enemyBullets.filter((bullet) => bullet.y < canvas.height);
           }
 
+          function getEnemyMoveInterval() {
+            return Math.max(6, 34 - (stage - 1) * 4);
+          }
+
+          function getEnemyMoveDistance() {
+            return Math.min(22, 12 + (stage - 1) * 2);
+          }
+
           function updateEnemies() {
             enemyMoveTimer += 1;
             if (enemyMoveTimer < enemyMoveInterval) {
@@ -1101,8 +1109,9 @@ SHOOTING_HTML = render_page(
             enemyMoveTimer = 0;
 
             let shouldDrop = false;
+            const moveDistance = getEnemyMoveDistance();
             enemies.forEach((enemy) => {
-              enemy.x += enemyDirection * 12;
+              enemy.x += enemyDirection * moveDistance;
               if (enemy.x <= 16 || enemy.x + enemy.width >= canvas.width - 16) {
                 shouldDrop = true;
               }
@@ -1115,7 +1124,7 @@ SHOOTING_HTML = render_page(
               });
             }
 
-            enemyMoveInterval = Math.max(8, 34 - Math.floor(score / 120));
+            enemyMoveInterval = getEnemyMoveInterval();
           }
 
           function updateEnemyFire() {
@@ -1148,7 +1157,7 @@ SHOOTING_HTML = render_page(
             enemyDirection = stage % 2 === 0 ? -1 : 1;
             enemyMoveTimer = 0;
             enemyFireTimer = 0;
-            enemyMoveInterval = Math.max(8, 34 - (stage - 1) * 3);
+            enemyMoveInterval = getEnemyMoveInterval();
           }
 
           function resolveCollisions() {
@@ -1253,9 +1262,9 @@ SHOOTING_HTML = render_page(
             enemies = createEnemies();
             enemyDirection = 1;
             enemyMoveTimer = 0;
-            enemyMoveInterval = 34;
             enemyFireTimer = 0;
             stage = 1;
+            enemyMoveInterval = getEnemyMoveInterval();
             score = 0;
             hasStarted = true;
             isPaused = false;
@@ -1337,9 +1346,9 @@ SHOOTING_HTML = render_page(
           enemies = createEnemies();
           enemyDirection = 1;
           enemyMoveTimer = 0;
-          enemyMoveInterval = 34;
           enemyFireTimer = 0;
           stage = 1;
+          enemyMoveInterval = getEnemyMoveInterval();
           score = 0;
           highScore = Number(localStorage.getItem(highScoreKey) || 0);
           highScoreName = localStorage.getItem(highScoreNameKey) || findHighScoreName(highScore);

@@ -944,11 +944,14 @@ SHOOTING_HTML = render_page(
           const enemyHeight = 24;
           const enemyRows = 4;
           const enemyColumns = 9;
+          const rareEnemySpawnFrames = 60 * 60;
 
           let player;
           let bullets;
           let enemyBullets;
           let enemies;
+          let rareEnemy;
+          let rareEnemyTimer;
           let enemyDirection;
           let enemyMoveTimer;
           let enemyMoveInterval;
@@ -982,6 +985,18 @@ SHOOTING_HTML = render_page(
             }
 
             return createdEnemies;
+          }
+
+          function createRareEnemy() {
+            const startsFromLeft = Math.random() > 0.5;
+            return {
+              x: startsFromLeft ? -70 : canvas.width + 10,
+              y: 28,
+              width: 58,
+              height: 24,
+              speed: startsFromLeft ? 2.4 : -2.4,
+              points: 1000,
+            };
           }
 
           function rectsOverlap(left, right) {
@@ -1127,6 +1142,22 @@ SHOOTING_HTML = render_page(
             enemyMoveInterval = getEnemyMoveInterval();
           }
 
+          function updateRareEnemy() {
+            if (rareEnemy) {
+              rareEnemy.x += rareEnemy.speed;
+              if (rareEnemy.x + rareEnemy.width < -20 || rareEnemy.x > canvas.width + 20) {
+                rareEnemy = null;
+              }
+              return;
+            }
+
+            rareEnemyTimer += 1;
+            if (rareEnemyTimer >= rareEnemySpawnFrames) {
+              rareEnemy = createRareEnemy();
+              rareEnemyTimer = 0;
+            }
+          }
+
           function updateEnemyFire() {
             enemyFireTimer += 1;
             const enemyFireInterval = Math.max(
@@ -1162,6 +1193,15 @@ SHOOTING_HTML = render_page(
 
           function resolveCollisions() {
             bullets = bullets.filter((bullet) => {
+              if (rareEnemy && rectsOverlap(bullet, rareEnemy)) {
+                score += rareEnemy.points;
+                scoreElement.textContent = score;
+                statusElement.textContent = "レア敵撃破 +1000";
+                updateHighScore();
+                rareEnemy = null;
+                return false;
+              }
+
               const enemyIndex = enemies.findIndex((enemy) => rectsOverlap(bullet, enemy));
               if (enemyIndex === -1) {
                 return true;
@@ -1209,6 +1249,20 @@ SHOOTING_HTML = render_page(
             context.fillRect(enemy.x + enemy.width - 10, enemy.y, 6, 8);
           }
 
+          function drawRareEnemy() {
+            if (!rareEnemy) {
+              return;
+            }
+
+            context.fillStyle = "#ffe45c";
+            context.fillRect(rareEnemy.x, rareEnemy.y + 8, rareEnemy.width, rareEnemy.height - 8);
+            context.fillStyle = "#ff5c7a";
+            context.fillRect(rareEnemy.x + 10, rareEnemy.y, rareEnemy.width - 20, 10);
+            context.fillStyle = "#021329";
+            context.fillRect(rareEnemy.x + 14, rareEnemy.y + 14, 7, 5);
+            context.fillRect(rareEnemy.x + rareEnemy.width - 21, rareEnemy.y + 14, 7, 5);
+          }
+
           function draw() {
             context.fillStyle = "rgba(0, 12, 28, 0.96)";
             context.fillRect(0, 0, canvas.width, canvas.height);
@@ -1220,6 +1274,7 @@ SHOOTING_HTML = render_page(
               context.fillRect(x, y, 2, 2);
             }
 
+            drawRareEnemy();
             enemies.forEach(drawEnemy);
 
             context.fillStyle = "#ffe45c";
@@ -1240,6 +1295,7 @@ SHOOTING_HTML = render_page(
               updatePlayer();
               updateBullets();
               updateEnemies();
+              updateRareEnemy();
               updateEnemyFire();
               resolveCollisions();
             }
@@ -1260,6 +1316,8 @@ SHOOTING_HTML = render_page(
             bullets = [];
             enemyBullets = [];
             enemies = createEnemies();
+            rareEnemy = null;
+            rareEnemyTimer = 0;
             enemyDirection = 1;
             enemyMoveTimer = 0;
             enemyFireTimer = 0;
@@ -1344,6 +1402,8 @@ SHOOTING_HTML = render_page(
           bullets = [];
           enemyBullets = [];
           enemies = createEnemies();
+          rareEnemy = null;
+          rareEnemyTimer = 0;
           enemyDirection = 1;
           enemyMoveTimer = 0;
           enemyFireTimer = 0;

@@ -2089,16 +2089,42 @@ BREAKOUT_HTML = render_page(
           let isGameOver;
           let keys;
 
+          function shouldPlaceBrick(row, column, pattern) {
+            if (pattern === 1) {
+              return row === 0 || (row + column) % 2 === 0;
+            }
+            if (pattern === 2) {
+              return column === 0 || column === brickColumns - 1 || row % 2 === 0;
+            }
+            if (pattern === 3) {
+              const center = (brickColumns - 1) / 2;
+              return Math.abs(column - center) <= row + 1;
+            }
+            return true;
+          }
+
           function createBricks() {
             const createdBricks = [];
-            for (let row = 0; row < brickRows; row += 1) {
+            const rowCount = Math.min(brickRows + 2, brickRows + Math.floor((stage - 1) / 2));
+            const pattern = (stage - 1) % 4;
+            const baseHits = 1 + Math.floor((stage - 1) / 3);
+
+            for (let row = 0; row < rowCount; row += 1) {
               for (let column = 0; column < brickColumns; column += 1) {
+                if (!shouldPlaceBrick(row, column, pattern)) {
+                  continue;
+                }
+
+                const isReinforced = stage >= 3 && (row + column + stage) % 4 === 0;
+                const hits = Math.min(4, baseHits + (isReinforced ? 1 : 0));
                 createdBricks.push({
                   x: brickOffsetX + column * (brickWidth + brickGap),
                   y: brickOffsetY + row * (brickHeight + brickGap),
                   width: brickWidth,
                   height: brickHeight,
-                  points: (brickRows - row) * 10,
+                  hits,
+                  maxHits: hits,
+                  points: (rowCount - row) * 10 * hits,
                 });
               }
             }
@@ -2244,10 +2270,13 @@ BREAKOUT_HTML = render_page(
             const brickIndex = bricks.findIndex((brick) => rectsOverlap(ballRect, brick));
             if (brickIndex !== -1) {
               const brick = bricks[brickIndex];
-              score += brick.points;
+              score += Math.ceil(brick.points / brick.maxHits);
               scoreElement.textContent = score;
               updateHighScore();
-              bricks.splice(brickIndex, 1);
+              brick.hits -= 1;
+              if (brick.hits <= 0) {
+                bricks.splice(brickIndex, 1);
+              }
               ball.dy *= -1;
             }
 
@@ -2269,10 +2298,18 @@ BREAKOUT_HTML = render_page(
 
             bricks.forEach((brick) => {
               const hue = 185 + Math.floor(brick.y / 10);
-              context.fillStyle = `hsl(${hue}, 85%, 62%)`;
+              const lightness = Math.max(42, 68 - brick.hits * 7);
+              context.fillStyle = `hsl(${hue}, 85%, ${lightness}%)`;
               context.fillRect(brick.x, brick.y, brick.width, brick.height);
               context.strokeStyle = "rgba(255, 255, 255, 0.35)";
               context.strokeRect(brick.x + 1, brick.y + 1, brick.width - 2, brick.height - 2);
+              if (brick.maxHits > 1) {
+                context.fillStyle = "rgba(255, 255, 255, 0.86)";
+                context.font = "bold 13px sans-serif";
+                context.textAlign = "center";
+                context.textBaseline = "middle";
+                context.fillText(brick.hits, brick.x + brick.width / 2, brick.y + brick.height / 2);
+              }
             });
 
             context.fillStyle = "#9feaff";

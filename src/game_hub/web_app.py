@@ -2076,9 +2076,10 @@ BREAKOUT_HTML = render_page(
           const brickGap = 8;
           const brickOffsetX = 22;
           const brickOffsetY = 70;
+          const yellowBrickBonus = 120;
 
           let paddle;
-          let ball;
+          let balls;
           let bricks;
           let score;
           let highScore;
@@ -2103,6 +2104,10 @@ BREAKOUT_HTML = render_page(
             return true;
           }
 
+          function getYellowBrickIndex(bricksForStage) {
+            return (stage * 7 + 3) % bricksForStage.length;
+          }
+
           function createBricks() {
             const createdBricks = [];
             const rowCount = Math.min(brickRows + 2, brickRows + Math.floor((stage - 1) / 2));
@@ -2125,8 +2130,16 @@ BREAKOUT_HTML = render_page(
                   hits,
                   maxHits: hits,
                   points: (rowCount - row) * 10 * hits,
+                  isYellow: false,
                 });
               }
+            }
+            if (createdBricks.length > 0) {
+              const yellowBrick = createdBricks[getYellowBrickIndex(createdBricks)];
+              yellowBrick.isYellow = true;
+              yellowBrick.hits = 1;
+              yellowBrick.maxHits = 1;
+              yellowBrick.points += yellowBrickBonus;
             }
             return createdBricks;
           }
@@ -2140,15 +2153,37 @@ BREAKOUT_HTML = render_page(
             );
           }
 
-          function resetBall(launch = false) {
-            ball = {
+          function createBall(launch = false, direction = 1) {
+            return {
               x: paddle.x + paddle.width / 2,
               y: paddle.y - ballRadius - 2,
               radius: ballRadius,
-              dx: launch ? 3.4 + stage * 0.25 : 0,
+              dx: launch ? direction * (3.4 + stage * 0.25) : 0,
               dy: launch ? -(4.2 + stage * 0.28) : 0,
               isLaunched: launch,
             };
+          }
+
+          function resetBall(launch = false) {
+            balls = [createBall(launch)];
+          }
+
+          function doubleBalls() {
+            balls = balls.flatMap((currentBall) => {
+              if (!currentBall.isLaunched) {
+                return [currentBall, createBall(false)];
+              }
+
+              return [
+                currentBall,
+                {
+                  ...currentBall,
+                  dx: currentBall.dx === 0 ? 3.2 : -currentBall.dx,
+                  dy: currentBall.dy * 0.96,
+                },
+              ];
+            });
+            statusElement.textContent = "黄色ブロック: ボール倍増";
           }
 
           function updateHighScore() {
@@ -2215,8 +2250,14 @@ BREAKOUT_HTML = render_page(
           }
 
           function launchBall() {
-            if (!ball.isLaunched) {
-              resetBall(true);
+            if (balls.some((currentBall) => !currentBall.isLaunched)) {
+              balls = balls.map((currentBall, index) => {
+                if (currentBall.isLaunched) {
+                  return currentBall;
+                }
+
+                return createBall(true, index % 2 === 0 ? 1 : -1);
+              });
               statusElement.textContent = "プレイ中";
             }
           }
@@ -2232,52 +2273,59 @@ BREAKOUT_HTML = render_page(
           }
 
           function updateBall() {
-            if (!ball.isLaunched) {
-              ball.x = paddle.x + paddle.width / 2;
-              ball.y = paddle.y - ball.radius - 2;
-              return;
-            }
+            balls.forEach((ball) => {
+              if (!ball.isLaunched) {
+                ball.x = paddle.x + paddle.width / 2;
+                ball.y = paddle.y - ball.radius - 2;
+                return;
+              }
 
-            ball.x += ball.dx;
-            ball.y += ball.dy;
+              ball.x += ball.dx;
+              ball.y += ball.dy;
 
-            if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= canvas.width) {
-              ball.dx *= -1;
-              ball.x = Math.max(ball.radius, Math.min(canvas.width - ball.radius, ball.x));
-            }
-            if (ball.y - ball.radius <= 0) {
-              ball.dy *= -1;
-              ball.y = ball.radius;
-            }
-            if (ball.y - ball.radius > canvas.height) {
+              if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= canvas.width) {
+                ball.dx *= -1;
+                ball.x = Math.max(ball.radius, Math.min(canvas.width - ball.radius, ball.x));
+              }
+              if (ball.y - ball.radius <= 0) {
+                ball.dy *= -1;
+                ball.y = ball.radius;
+              }
+
+              const ballRect = {
+                x: ball.x - ball.radius,
+                y: ball.y - ball.radius,
+                width: ball.radius * 2,
+                height: ball.radius * 2,
+              };
+              if (rectsOverlap(ballRect, paddle) && ball.dy > 0) {
+                const hitPosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+                ball.dx = hitPosition * (4 + stage * 0.35);
+                ball.dy = -Math.abs(ball.dy);
+                ball.y = paddle.y - ball.radius - 1;
+              }
+
+              const brickIndex = bricks.findIndex((brick) => rectsOverlap(ballRect, brick));
+              if (brickIndex !== -1) {
+                const brick = bricks[brickIndex];
+                score += Math.ceil(brick.points / brick.maxHits);
+                scoreElement.textContent = score;
+                updateHighScore();
+                brick.hits -= 1;
+                if (brick.hits <= 0) {
+                  if (brick.isYellow) {
+                    doubleBalls();
+                  }
+                  bricks.splice(brickIndex, 1);
+                }
+                ball.dy *= -1;
+              }
+            });
+
+            balls = balls.filter((ball) => ball.y - ball.radius <= canvas.height);
+            if (balls.length === 0) {
               finishGame("ゲームオーバー");
               return;
-            }
-
-            const ballRect = {
-              x: ball.x - ball.radius,
-              y: ball.y - ball.radius,
-              width: ball.radius * 2,
-              height: ball.radius * 2,
-            };
-            if (rectsOverlap(ballRect, paddle) && ball.dy > 0) {
-              const hitPosition = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-              ball.dx = hitPosition * (4 + stage * 0.35);
-              ball.dy = -Math.abs(ball.dy);
-              ball.y = paddle.y - ball.radius - 1;
-            }
-
-            const brickIndex = bricks.findIndex((brick) => rectsOverlap(ballRect, brick));
-            if (brickIndex !== -1) {
-              const brick = bricks[brickIndex];
-              score += Math.ceil(brick.points / brick.maxHits);
-              scoreElement.textContent = score;
-              updateHighScore();
-              brick.hits -= 1;
-              if (brick.hits <= 0) {
-                bricks.splice(brickIndex, 1);
-              }
-              ball.dy *= -1;
             }
 
             if (bricks.length === 0) {
@@ -2299,10 +2347,18 @@ BREAKOUT_HTML = render_page(
             bricks.forEach((brick) => {
               const hue = 185 + Math.floor(brick.y / 10);
               const lightness = Math.max(42, 68 - brick.hits * 7);
-              context.fillStyle = `hsl(${hue}, 85%, ${lightness}%)`;
+              context.fillStyle = brick.isYellow ? "#ffe45c" : `hsl(${hue}, 85%, ${lightness}%)`;
               context.fillRect(brick.x, brick.y, brick.width, brick.height);
               context.strokeStyle = "rgba(255, 255, 255, 0.35)";
               context.strokeRect(brick.x + 1, brick.y + 1, brick.width - 2, brick.height - 2);
+              if (brick.isYellow) {
+                context.fillStyle = "rgba(0, 18, 40, 0.85)";
+                context.font = "bold 13px sans-serif";
+                context.textAlign = "center";
+                context.textBaseline = "middle";
+                context.fillText("x2", brick.x + brick.width / 2, brick.y + brick.height / 2);
+                return;
+              }
               if (brick.maxHits > 1) {
                 context.fillStyle = "rgba(255, 255, 255, 0.86)";
                 context.font = "bold 13px sans-serif";
@@ -2315,9 +2371,11 @@ BREAKOUT_HTML = render_page(
             context.fillStyle = "#9feaff";
             context.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
             context.fillStyle = "#ffe45c";
-            context.beginPath();
-            context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            context.fill();
+            balls.forEach((ball) => {
+              context.beginPath();
+              context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+              context.fill();
+            });
           }
 
           function update() {

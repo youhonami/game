@@ -2077,6 +2077,8 @@ BREAKOUT_HTML = render_page(
           const brickOffsetX = 22;
           const brickOffsetY = 70;
           const yellowBrickBonus = 120;
+          const extendedPaddleWidth = 150;
+          const paddleExtendDurationMs = 30000;
 
           let paddle;
           let balls;
@@ -2089,6 +2091,7 @@ BREAKOUT_HTML = render_page(
           let isPaused;
           let isGameOver;
           let keys;
+          let paddleExtendUntil;
 
           function shouldPlaceBrick(row, column, pattern) {
             if (pattern === 1) {
@@ -2106,6 +2109,14 @@ BREAKOUT_HTML = render_page(
 
           function getYellowBrickIndex(bricksForStage) {
             return (stage * 7 + 3) % bricksForStage.length;
+          }
+
+          function getGreenBrickIndex(bricksForStage, yellowIndex) {
+            let greenIndex = (stage * 5 + 1) % bricksForStage.length;
+            if (greenIndex === yellowIndex) {
+              greenIndex = (greenIndex + 1) % bricksForStage.length;
+            }
+            return greenIndex;
           }
 
           function createBricks() {
@@ -2131,15 +2142,24 @@ BREAKOUT_HTML = render_page(
                   maxHits: hits,
                   points: (rowCount - row) * 10 * hits,
                   isYellow: false,
+                  isGreen: false,
                 });
               }
             }
             if (createdBricks.length > 0) {
-              const yellowBrick = createdBricks[getYellowBrickIndex(createdBricks)];
+              const yellowIndex = getYellowBrickIndex(createdBricks);
+              const yellowBrick = createdBricks[yellowIndex];
               yellowBrick.isYellow = true;
               yellowBrick.hits = 1;
               yellowBrick.maxHits = 1;
               yellowBrick.points += yellowBrickBonus;
+
+              if (createdBricks.length > 1) {
+                const greenBrick = createdBricks[getGreenBrickIndex(createdBricks, yellowIndex)];
+                greenBrick.isGreen = true;
+                greenBrick.hits = 1;
+                greenBrick.maxHits = 1;
+              }
             }
             return createdBricks;
           }
@@ -2184,6 +2204,25 @@ BREAKOUT_HTML = render_page(
               ];
             });
             statusElement.textContent = "黄色ブロック: ボール倍増";
+          }
+
+          function extendPaddle() {
+            const center = paddle.x + paddle.width / 2;
+            paddle.width = extendedPaddleWidth;
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, center - paddle.width / 2));
+            paddleExtendUntil = performance.now() + paddleExtendDurationMs;
+            statusElement.textContent = "緑ブロック: バー延長";
+          }
+
+          function updatePaddleExtension() {
+            if (!paddleExtendUntil || performance.now() < paddleExtendUntil) {
+              return;
+            }
+
+            const center = paddle.x + paddle.width / 2;
+            paddle.width = paddleWidth;
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, center - paddle.width / 2));
+            paddleExtendUntil = 0;
           }
 
           function updateHighScore() {
@@ -2263,6 +2302,7 @@ BREAKOUT_HTML = render_page(
           }
 
           function updatePaddle() {
+            updatePaddleExtension();
             if (keys.ArrowLeft) {
               paddle.x -= paddle.speed;
             }
@@ -2316,6 +2356,9 @@ BREAKOUT_HTML = render_page(
                   if (brick.isYellow) {
                     doubleBalls();
                   }
+                  if (brick.isGreen) {
+                    extendPaddle();
+                  }
                   bricks.splice(brickIndex, 1);
                 }
                 ball.dy *= -1;
@@ -2347,16 +2390,20 @@ BREAKOUT_HTML = render_page(
             bricks.forEach((brick) => {
               const hue = 185 + Math.floor(brick.y / 10);
               const lightness = Math.max(42, 68 - brick.hits * 7);
-              context.fillStyle = brick.isYellow ? "#ffe45c" : `hsl(${hue}, 85%, ${lightness}%)`;
+              context.fillStyle = brick.isYellow
+                ? "#ffe45c"
+                : brick.isGreen
+                  ? "#5cff9d"
+                  : `hsl(${hue}, 85%, ${lightness}%)`;
               context.fillRect(brick.x, brick.y, brick.width, brick.height);
               context.strokeStyle = "rgba(255, 255, 255, 0.35)";
               context.strokeRect(brick.x + 1, brick.y + 1, brick.width - 2, brick.height - 2);
-              if (brick.isYellow) {
+              if (brick.isYellow || brick.isGreen) {
                 context.fillStyle = "rgba(0, 18, 40, 0.85)";
                 context.font = "bold 13px sans-serif";
                 context.textAlign = "center";
                 context.textBaseline = "middle";
-                context.fillText("x2", brick.x + brick.width / 2, brick.y + brick.height / 2);
+                context.fillText(brick.isYellow ? "x2" : "W", brick.x + brick.width / 2, brick.y + brick.height / 2);
                 return;
               }
               if (brick.maxHits > 1) {
@@ -2403,6 +2450,7 @@ BREAKOUT_HTML = render_page(
             isPaused = false;
             isGameOver = false;
             keys = {};
+            paddleExtendUntil = 0;
             scoreElement.textContent = score;
             stageElement.textContent = stage;
             statusElement.textContent = "Spaceで発射";
@@ -2484,6 +2532,7 @@ BREAKOUT_HTML = render_page(
           isPaused = false;
           isGameOver = false;
           keys = {};
+          paddleExtendUntil = 0;
           scoreElement.textContent = score;
           stageElement.textContent = stage;
           highScoreElement.textContent = highScore;

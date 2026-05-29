@@ -395,14 +395,34 @@ STYLE = """
       border-radius: 18px;
     }
 
-    .admin-card h3 {
-      margin: 0 0 12px;
+    .admin-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 0;
       color: #9feaff;
       font-size: 22px;
-      text-align: center;
+      font-weight: 700;
+      cursor: pointer;
+      background: transparent;
+      border: 0;
     }
 
-    .admin-card p {
+    .admin-toggle span {
+      color: #d8f7ff;
+      font-size: 13px;
+    }
+
+    .admin-score-detail {
+      margin-top: 14px;
+    }
+
+    .admin-score-detail[hidden] {
+      display: none;
+    }
+
+    .admin-score-detail p {
       margin: 0 0 16px;
       color: #ffffff;
       font-size: 15px;
@@ -422,6 +442,56 @@ STYLE = """
       background: rgba(210, 60, 80, 0.9);
       border: 1px solid rgba(255, 190, 200, 0.9);
       border-radius: 14px;
+    }
+
+    .danger-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .admin-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .score-entry-list {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .score-entry-list.is-scrollable {
+      max-height: 280px;
+      padding-right: 6px;
+      overflow-y: auto;
+    }
+
+    .score-entry-list li {
+      display: grid;
+      grid-template-columns: 40px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      background: rgba(4, 32, 64, 0.78);
+      border: 1px solid rgba(150, 235, 255, 0.28);
+      border-radius: 12px;
+    }
+
+    .score-entry-list button {
+      padding: 8px 10px;
+      color: #ffffff;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(210, 60, 80, 0.9);
+      border: 1px solid rgba(255, 190, 200, 0.8);
+      border-radius: 10px;
     }
 
     .admin-message {
@@ -2694,27 +2764,46 @@ OWNER_DASHBOARD_HTML = render_page(
     body_html="""<p>登録されたスコアデータを削除できます</p>
         <div class="admin-grid">
           <section class="admin-card">
-            <h3>テトリス</h3>
-            <p id="admin-tetris-count">読み込み中...</p>
-            <button class="danger-button" type="button" data-delete-score="tetris">スコアを削除</button>
+            <button class="admin-toggle" type="button" data-toggle-score="tetris" aria-expanded="false">
+              テトリス<span>開く</span>
+            </button>
+            <div class="admin-score-detail" id="admin-tetris-detail" hidden>
+              <p id="admin-tetris-count">読み込み中...</p>
+              <ul class="score-entry-list" id="admin-tetris-list"></ul>
+            </div>
           </section>
           <section class="admin-card">
-            <h3>シューティング</h3>
-            <p id="admin-shooting-count">読み込み中...</p>
-            <button class="danger-button" type="button" data-delete-score="shooting">スコアを削除</button>
+            <button class="admin-toggle" type="button" data-toggle-score="shooting" aria-expanded="false">
+              シューティング<span>開く</span>
+            </button>
+            <div class="admin-score-detail" id="admin-shooting-detail" hidden>
+              <p id="admin-shooting-count">読み込み中...</p>
+              <ul class="score-entry-list" id="admin-shooting-list"></ul>
+            </div>
           </section>
           <section class="admin-card">
-            <h3>ぷよぷよ</h3>
-            <p id="admin-puyopuyo-count">読み込み中...</p>
-            <button class="danger-button" type="button" data-delete-score="puyopuyo">スコアを削除</button>
+            <button class="admin-toggle" type="button" data-toggle-score="puyopuyo" aria-expanded="false">
+              ぷよぷよ<span>開く</span>
+            </button>
+            <div class="admin-score-detail" id="admin-puyopuyo-detail" hidden>
+              <p id="admin-puyopuyo-count">読み込み中...</p>
+              <ul class="score-entry-list" id="admin-puyopuyo-list"></ul>
+            </div>
           </section>
           <section class="admin-card">
-            <h3>ブロック崩し</h3>
-            <p id="admin-breakout-count">読み込み中...</p>
-            <button class="danger-button" type="button" data-delete-score="breakout">スコアを削除</button>
+            <button class="admin-toggle" type="button" data-toggle-score="breakout" aria-expanded="false">
+              ブロック崩し<span>開く</span>
+            </button>
+            <div class="admin-score-detail" id="admin-breakout-detail" hidden>
+              <p id="admin-breakout-count">読み込み中...</p>
+              <ul class="score-entry-list" id="admin-breakout-list"></ul>
+            </div>
           </section>
         </div>
-        <button class="danger-button" id="delete-all-scores" type="button" style="margin-top: 22px;">全ゲームのスコアを削除</button>
+        <div class="admin-actions">
+          <button class="danger-button" id="delete-selected-game-scores" type="button" disabled>選択中ゲームのスコアを削除</button>
+          <button class="danger-button" id="delete-all-scores" type="button">全ゲームのスコアを削除</button>
+        </div>
         <p class="admin-message" id="admin-score-message"></p>
         <a class="back-link" href="/">トップページに戻る</a>
         <script>
@@ -2722,26 +2811,47 @@ OWNER_DASHBOARD_HTML = render_page(
             tetris: {
               label: "テトリス",
               countId: "admin-tetris-count",
+              detailId: "admin-tetris-detail",
+              listId: "admin-tetris-list",
               keys: ["gameHubTetrisRanking", "gameHubTetrisHighScore", "gameHubTetrisHighScoreName"],
             },
             shooting: {
               label: "シューティング",
               countId: "admin-shooting-count",
+              detailId: "admin-shooting-detail",
+              listId: "admin-shooting-list",
               keys: ["gameHubShootingRanking", "gameHubShootingHighScore", "gameHubShootingHighScoreName"],
             },
             puyopuyo: {
               label: "ぷよぷよ",
               countId: "admin-puyopuyo-count",
+              detailId: "admin-puyopuyo-detail",
+              listId: "admin-puyopuyo-list",
               keys: ["gameHubPuyopuyoRanking", "gameHubPuyopuyoHighScore", "gameHubPuyopuyoHighScoreName"],
             },
             breakout: {
               label: "ブロック崩し",
               countId: "admin-breakout-count",
+              detailId: "admin-breakout-detail",
+              listId: "admin-breakout-list",
               keys: ["gameHubBreakoutRanking", "gameHubBreakoutHighScore", "gameHubBreakoutHighScoreName"],
             },
           };
 
           const messageElement = document.getElementById("admin-score-message");
+          const deleteSelectedGameButton = document.getElementById("delete-selected-game-scores");
+          let activeStoreKey = null;
+
+          function updateDeleteGameButton() {
+            if (!activeStoreKey) {
+              deleteSelectedGameButton.disabled = true;
+              deleteSelectedGameButton.textContent = "選択中ゲームのスコアを削除";
+              return;
+            }
+
+            deleteSelectedGameButton.disabled = false;
+            deleteSelectedGameButton.textContent = `${scoreStores[activeStoreKey].label}のスコアをすべて削除`;
+          }
 
           function getRankingCount(storageKey) {
             try {
@@ -2752,12 +2862,68 @@ OWNER_DASHBOARD_HTML = render_page(
             }
           }
 
+          function loadRanking(storageKey) {
+            try {
+              const ranking = JSON.parse(localStorage.getItem(storageKey) || "[]");
+              return Array.isArray(ranking) ? ranking : [];
+            } catch {
+              return [];
+            }
+          }
+
+          function saveRanking(store, ranking) {
+            localStorage.setItem(store.keys[0], JSON.stringify(ranking));
+          }
+
+          function updateHighScoreFromRanking(store) {
+            const ranking = loadRanking(store.keys[0])
+              .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
+              .sort((left, right) => Number(right.score) - Number(left.score));
+            const topEntry = ranking[0];
+
+            if (!topEntry) {
+              localStorage.removeItem(store.keys[1]);
+              localStorage.removeItem(store.keys[2]);
+              return;
+            }
+
+            localStorage.setItem(store.keys[1], String(Number(topEntry.score)));
+            localStorage.setItem(store.keys[2], String(topEntry.name).slice(0, 3));
+          }
+
+          function renderScoreEntries(storeKey) {
+            const store = scoreStores[storeKey];
+            const listElement = document.getElementById(store.listId);
+            const ranking = loadRanking(store.keys[0])
+              .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
+              .sort((left, right) => Number(right.score) - Number(left.score));
+
+            if (ranking.length === 0) {
+              listElement.classList.remove("is-scrollable");
+              listElement.innerHTML = '<li><span>-</span><span>登録なし</span><span></span><span></span></li>';
+              return;
+            }
+
+            listElement.classList.toggle("is-scrollable", ranking.length >= 5);
+            listElement.innerHTML = ranking
+              .map((entry, index) => `
+                <li>
+                  <span>${index + 1}位</span>
+                  <span>${String(entry.name).slice(0, 3)}</span>
+                  <span>${Number(entry.score)}</span>
+                  <button type="button" data-delete-entry="${storeKey}" data-entry-index="${index}">削除</button>
+                </li>
+              `)
+              .join("");
+          }
+
           function refreshScoreCounts() {
-            Object.values(scoreStores).forEach((store) => {
+            Object.entries(scoreStores).forEach(([storeKey, store]) => {
               const rankingCount = getRankingCount(store.keys[0]);
               const highScore = Number(localStorage.getItem(store.keys[1]) || 0);
               document.getElementById(store.countId).textContent =
                 `登録数: ${rankingCount}件 / ハイスコア: ${highScore}`;
+              renderScoreEntries(storeKey);
             });
           }
 
@@ -2768,14 +2934,88 @@ OWNER_DASHBOARD_HTML = render_page(
             messageElement.textContent = `${store.label}のスコアを削除しました`;
           }
 
-          document.querySelectorAll("[data-delete-score]").forEach((button) => {
-            button.addEventListener("click", () => {
-              const storeKey = button.dataset.deleteScore;
-              if (!confirm(`${scoreStores[storeKey].label}のスコアを削除しますか？`)) {
-                return;
+          function closeScoreDetail(storeKey) {
+            const store = scoreStores[storeKey];
+            const toggleButton = document.querySelector(`[data-toggle-score="${storeKey}"]`);
+            const detailElement = document.getElementById(store.detailId);
+            toggleButton.setAttribute("aria-expanded", "false");
+            toggleButton.querySelector("span").textContent = "開く";
+            detailElement.hidden = true;
+            if (activeStoreKey === storeKey) {
+              activeStoreKey = null;
+              updateDeleteGameButton();
+            }
+          }
+
+          function openScoreDetail(storeKey) {
+            Object.keys(scoreStores).forEach((otherStoreKey) => {
+              if (otherStoreKey !== storeKey) {
+                closeScoreDetail(otherStoreKey);
               }
-              deleteScoreStore(storeKey);
             });
+
+            const store = scoreStores[storeKey];
+            const toggleButton = document.querySelector(`[data-toggle-score="${storeKey}"]`);
+            const detailElement = document.getElementById(store.detailId);
+            toggleButton.setAttribute("aria-expanded", "true");
+            toggleButton.querySelector("span").textContent = "閉じる";
+            detailElement.hidden = false;
+            activeStoreKey = storeKey;
+            updateDeleteGameButton();
+          }
+
+          document.addEventListener("click", (event) => {
+            const toggleButton = event.target.closest("[data-toggle-score]");
+            if (toggleButton) {
+              const storeKey = toggleButton.dataset.toggleScore;
+              const isOpen = toggleButton.getAttribute("aria-expanded") === "true";
+              if (isOpen) {
+                closeScoreDetail(storeKey);
+              } else {
+                openScoreDetail(storeKey);
+              }
+              return;
+            }
+
+            const deleteButton = event.target.closest("[data-delete-entry]");
+            if (!deleteButton) {
+              return;
+            }
+
+            const storeKey = deleteButton.dataset.deleteEntry;
+            const entryIndex = Number(deleteButton.dataset.entryIndex);
+            const store = scoreStores[storeKey];
+            const ranking = loadRanking(store.keys[0])
+              .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
+              .sort((left, right) => Number(right.score) - Number(left.score));
+            const entry = ranking[entryIndex];
+
+            if (!entry) {
+              return;
+            }
+
+            if (!confirm(`${store.label}の ${entry.name} / ${entry.score} 点を削除しますか？`)) {
+                return;
+            }
+
+            ranking.splice(entryIndex, 1);
+            saveRanking(store, ranking);
+            updateHighScoreFromRanking(store);
+            refreshScoreCounts();
+            messageElement.textContent = `${store.label}のスコアを1件削除しました`;
+          });
+
+          deleteSelectedGameButton.addEventListener("click", () => {
+            if (!activeStoreKey) {
+              return;
+            }
+
+            const store = scoreStores[activeStoreKey];
+            if (!confirm(`${store.label}のスコアをすべて削除しますか？`)) {
+              return;
+            }
+
+            deleteScoreStore(activeStoreKey);
           });
 
           document.getElementById("delete-all-scores").addEventListener("click", () => {
@@ -2788,6 +3028,7 @@ OWNER_DASHBOARD_HTML = render_page(
           });
 
           refreshScoreCounts();
+          updateDeleteGameButton();
         </script>""",
 )
 

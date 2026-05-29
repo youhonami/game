@@ -380,6 +380,58 @@ STYLE = """
       text-align: center;
     }
 
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .admin-card {
+      padding: 20px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .admin-card h3 {
+      margin: 0 0 12px;
+      color: #9feaff;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .admin-card p {
+      margin: 0 0 16px;
+      color: #ffffff;
+      font-size: 15px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .danger-button {
+      display: block;
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(210, 60, 80, 0.9);
+      border: 1px solid rgba(255, 190, 200, 0.9);
+      border-radius: 14px;
+    }
+
+    .admin-message {
+      min-height: 24px;
+      margin: 22px 0 0;
+      color: #9feaff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -2638,8 +2690,105 @@ OWNER_LOGIN_HTML = render_owner_login_page()
 OWNER_DASHBOARD_HTML = render_page(
     title="管理ページ | Ocean Game Hub",
     heading="管理ページ",
-    message="スコアデータ削除などの管理機能は後日作成します",
     active_page="owner-login",
+    body_html="""<p>登録されたスコアデータを削除できます</p>
+        <div class="admin-grid">
+          <section class="admin-card">
+            <h3>テトリス</h3>
+            <p id="admin-tetris-count">読み込み中...</p>
+            <button class="danger-button" type="button" data-delete-score="tetris">スコアを削除</button>
+          </section>
+          <section class="admin-card">
+            <h3>シューティング</h3>
+            <p id="admin-shooting-count">読み込み中...</p>
+            <button class="danger-button" type="button" data-delete-score="shooting">スコアを削除</button>
+          </section>
+          <section class="admin-card">
+            <h3>ぷよぷよ</h3>
+            <p id="admin-puyopuyo-count">読み込み中...</p>
+            <button class="danger-button" type="button" data-delete-score="puyopuyo">スコアを削除</button>
+          </section>
+          <section class="admin-card">
+            <h3>ブロック崩し</h3>
+            <p id="admin-breakout-count">読み込み中...</p>
+            <button class="danger-button" type="button" data-delete-score="breakout">スコアを削除</button>
+          </section>
+        </div>
+        <button class="danger-button" id="delete-all-scores" type="button" style="margin-top: 22px;">全ゲームのスコアを削除</button>
+        <p class="admin-message" id="admin-score-message"></p>
+        <a class="back-link" href="/">トップページに戻る</a>
+        <script>
+          const scoreStores = {
+            tetris: {
+              label: "テトリス",
+              countId: "admin-tetris-count",
+              keys: ["gameHubTetrisRanking", "gameHubTetrisHighScore", "gameHubTetrisHighScoreName"],
+            },
+            shooting: {
+              label: "シューティング",
+              countId: "admin-shooting-count",
+              keys: ["gameHubShootingRanking", "gameHubShootingHighScore", "gameHubShootingHighScoreName"],
+            },
+            puyopuyo: {
+              label: "ぷよぷよ",
+              countId: "admin-puyopuyo-count",
+              keys: ["gameHubPuyopuyoRanking", "gameHubPuyopuyoHighScore", "gameHubPuyopuyoHighScoreName"],
+            },
+            breakout: {
+              label: "ブロック崩し",
+              countId: "admin-breakout-count",
+              keys: ["gameHubBreakoutRanking", "gameHubBreakoutHighScore", "gameHubBreakoutHighScoreName"],
+            },
+          };
+
+          const messageElement = document.getElementById("admin-score-message");
+
+          function getRankingCount(storageKey) {
+            try {
+              const ranking = JSON.parse(localStorage.getItem(storageKey) || "[]");
+              return Array.isArray(ranking) ? ranking.length : 0;
+            } catch {
+              return 0;
+            }
+          }
+
+          function refreshScoreCounts() {
+            Object.values(scoreStores).forEach((store) => {
+              const rankingCount = getRankingCount(store.keys[0]);
+              const highScore = Number(localStorage.getItem(store.keys[1]) || 0);
+              document.getElementById(store.countId).textContent =
+                `登録数: ${rankingCount}件 / ハイスコア: ${highScore}`;
+            });
+          }
+
+          function deleteScoreStore(storeKey) {
+            const store = scoreStores[storeKey];
+            store.keys.forEach((key) => localStorage.removeItem(key));
+            refreshScoreCounts();
+            messageElement.textContent = `${store.label}のスコアを削除しました`;
+          }
+
+          document.querySelectorAll("[data-delete-score]").forEach((button) => {
+            button.addEventListener("click", () => {
+              const storeKey = button.dataset.deleteScore;
+              if (!confirm(`${scoreStores[storeKey].label}のスコアを削除しますか？`)) {
+                return;
+              }
+              deleteScoreStore(storeKey);
+            });
+          });
+
+          document.getElementById("delete-all-scores").addEventListener("click", () => {
+            if (!confirm("全ゲームのスコアを削除しますか？")) {
+              return;
+            }
+
+            Object.keys(scoreStores).forEach(deleteScoreStore);
+            messageElement.textContent = "全ゲームのスコアを削除しました";
+          });
+
+          refreshScoreCounts();
+        </script>""",
 )
 
 

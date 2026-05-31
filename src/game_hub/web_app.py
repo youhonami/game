@@ -524,6 +524,7 @@ def render_page(
     shooting_class = "active" if active_page == "shooting" else ""
     puyopuyo_class = "active" if active_page == "puyopuyo" else ""
     breakout_class = "active" if active_page == "breakout" else ""
+    ludo_class = "active" if active_page == "ludo" else ""
     ranking_class = "active" if active_page == "ranking" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
     back_link = "" if not active_page else '<a class="back-link" href="/">トップページに戻る</a>'
@@ -548,6 +549,7 @@ def render_page(
         <a class="{shooting_class}" href="/shooting">シューティング</a>
         <a class="{puyopuyo_class}" href="/puyopuyo">ぷよぷよ</a>
         <a class="{breakout_class}" href="/breakout">ブロック崩し</a>
+        <a class="{ludo_class}" href="/ludo">ルドー</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
       </nav>
       <nav class="menu sidebar-footer" aria-label="オーナーメニュー">
@@ -2664,6 +2666,12 @@ BREAKOUT_HTML = render_page(
           update();
         </script>""",
 )
+LUDO_HTML = render_page(
+    title="ルドー | Ocean Game Hub",
+    heading="ルドー",
+    active_page="ludo",
+    message="このページは後日作成します",
+)
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",
     heading="ランキング",
@@ -3055,6 +3063,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/breakout":
             self._send_html(BREAKOUT_HTML)
+            return
+
+        if path == "/ludo":
+            self._send_html(LUDO_HTML)
             return
 
         if path in {"/ranking", "/score"}:

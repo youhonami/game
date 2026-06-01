@@ -526,6 +526,7 @@ def render_page(
     breakout_class = "active" if active_page == "breakout" else ""
     ludo_class = "active" if active_page == "ludo" else ""
     ranking_class = "active" if active_page == "ranking" else ""
+    contact_class = "active" if active_page == "contact" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
     back_link = "" if not active_page else '<a class="back-link" href="/">トップページに戻る</a>'
     body = body_html if body_html is not None else f"<p>{message}</p>"
@@ -551,6 +552,7 @@ def render_page(
         <a class="{breakout_class}" href="/breakout">ブロック崩し</a>
         <a class="{ludo_class}" href="/ludo">ルドー</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
+        <a class="{contact_class}" href="/contact">お問い合わせ</a>
       </nav>
       <nav class="menu sidebar-footer" aria-label="オーナーメニュー">
         <a class="{owner_login_class}" href="/owner-login">オーナーログイン</a>
@@ -2738,6 +2740,12 @@ RANKING_HTML = render_page(
           rankingSources.forEach(renderRanking);
         </script>""",
 )
+CONTACT_HTML = render_page(
+    title="お問い合わせ | Ocean Game Hub",
+    heading="お問い合わせ",
+    active_page="contact",
+    message="このページは後日作成します",
+)
 
 
 def render_owner_login_page(error_message: str = "") -> str:
@@ -3071,6 +3079,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path in {"/ranking", "/score"}:
             self._send_html(RANKING_HTML)
+            return
+
+        if path == "/contact":
+            self._send_html(CONTACT_HTML)
             return
 
         if path == "/owner-login":

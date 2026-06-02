@@ -1,4 +1,7 @@
 import hmac
+import json
+from datetime import datetime
+from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -8,6 +11,7 @@ HOST = "127.0.0.1"
 PORT = 8000
 OWNER_ADDRESS = "admin@estra.jp"
 OWNER_PASSWORD = "password"
+CONTACT_MESSAGES_PATH = Path(__file__).with_name("contact_messages.json")
 BACKGROUND_IMAGE_PATH = Path(
     "/Users/honamiyuusuke/.cursor/projects/"
     "Users-honamiyuusuke-coachtech-game/assets/"
@@ -115,7 +119,8 @@ STYLE = """
       font-weight: 700;
     }
 
-    .login-form {
+    .login-form,
+    .contact-form {
       display: grid;
       gap: 18px;
       margin: 30px auto 0;
@@ -123,7 +128,8 @@ STYLE = """
       text-align: left;
     }
 
-    .login-form label {
+    .login-form label,
+    .contact-form label {
       display: grid;
       gap: 8px;
       color: #d8f7ff;
@@ -131,7 +137,9 @@ STYLE = """
       font-weight: 700;
     }
 
-    .login-form input {
+    .login-form input,
+    .contact-form input,
+    .contact-form textarea {
       width: 100%;
       padding: 14px 16px;
       color: #ffffff;
@@ -142,12 +150,21 @@ STYLE = """
       outline: none;
     }
 
-    .login-form input:focus {
+    .contact-form textarea {
+      min-height: 160px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .login-form input:focus,
+    .contact-form input:focus,
+    .contact-form textarea:focus {
       border-color: #ffffff;
       box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
     }
 
-    .login-form button {
+    .login-form button,
+    .contact-form button {
       margin-top: 8px;
       padding: 15px 18px;
       color: #ffffff;
@@ -175,6 +192,18 @@ STYLE = """
       font-weight: 700;
       background: rgba(210, 60, 80, 0.82);
       border: 1px solid rgba(255, 190, 200, 0.9);
+      border-radius: 12px;
+    }
+
+    .success-message {
+      margin: 24px auto 0;
+      max-width: 420px;
+      padding: 12px 14px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      background: rgba(28, 150, 105, 0.82);
+      border: 1px solid rgba(175, 255, 220, 0.9);
       border-radius: 12px;
     }
 
@@ -502,6 +531,64 @@ STYLE = """
       font-weight: 700;
     }
 
+    .owner-contact-panel {
+      margin-top: 30px;
+      padding: 20px;
+      text-align: left;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .owner-contact-panel h3 {
+      margin: 0 0 14px;
+      color: #9feaff;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .contact-message-list {
+      display: grid;
+      gap: 12px;
+      max-height: 360px;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+    }
+
+    .contact-message-list li {
+      padding: 14px;
+      color: #ffffff;
+      background: rgba(4, 32, 64, 0.78);
+      border: 1px solid rgba(150, 235, 255, 0.28);
+      border-radius: 12px;
+    }
+
+    .contact-message-list strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #ffffff;
+      font-size: 16px;
+    }
+
+    .contact-message-list small {
+      display: block;
+      margin-bottom: 10px;
+      color: #9feaff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .contact-message-list p,
+    .empty-contact-message {
+      margin: 0;
+      color: #d8f7ff;
+      font-size: 15px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -569,6 +656,55 @@ def render_page(
 </body>
 </html>
 """
+
+
+def load_contact_messages() -> list[dict[str, str]]:
+    if not CONTACT_MESSAGES_PATH.exists():
+        return []
+
+    try:
+        data = json.loads(CONTACT_MESSAGES_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    messages: list[dict[str, str]] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+
+        messages.append(
+            {
+                "name": str(item.get("name", "")),
+                "email": str(item.get("email", "")),
+                "message": str(item.get("message", "")),
+                "sent_at": str(item.get("sent_at", "")),
+            }
+        )
+
+    return messages
+
+
+def save_contact_messages(messages: list[dict[str, str]]) -> None:
+    CONTACT_MESSAGES_PATH.write_text(
+        json.dumps(messages, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def add_contact_message(name: str, email: str, message: str) -> None:
+    messages = load_contact_messages()
+    messages.append(
+        {
+            "name": name,
+            "email": email,
+            "message": message,
+            "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+    )
+    save_contact_messages(messages)
 
 
 HOME_HTML = render_page(
@@ -2740,12 +2876,40 @@ RANKING_HTML = render_page(
           rankingSources.forEach(renderRanking);
         </script>""",
 )
-CONTACT_HTML = render_page(
-    title="お問い合わせ | Ocean Game Hub",
-    heading="お問い合わせ",
-    active_page="contact",
-    message="このページは後日作成します",
-)
+def render_contact_page(
+    status_message: str = "",
+    is_error: bool = False,
+    name: str = "",
+    email: str = "",
+    message: str = "",
+) -> str:
+    status_html = ""
+    if status_message:
+        status_class = "error-message" if is_error else "success-message"
+        status_html = f'<div class="{status_class}">{escape(status_message)}</div>'
+
+    return render_page(
+        title="お問い合わせ | Ocean Game Hub",
+        heading="お問い合わせ",
+        active_page="contact",
+        body_html=f"""<p>オーナーへメッセージを送れます</p>
+        <form class="contact-form" action="/contact" method="post">
+          <label>
+            お名前
+            <input type="text" name="name" value="{escape(name, quote=True)}" autocomplete="name" required>
+          </label>
+          <label>
+            メールアドレス
+            <input type="email" name="email" value="{escape(email, quote=True)}" autocomplete="email" required>
+          </label>
+          <label>
+            メッセージ
+            <textarea name="message" required>{escape(message)}</textarea>
+          </label>
+          <button type="submit">送信する</button>
+        </form>
+        {status_html}""",
+    )
 
 
 def render_owner_login_page(error_message: str = "") -> str:
@@ -2773,11 +2937,36 @@ def render_owner_login_page(error_message: str = "") -> str:
 
 
 OWNER_LOGIN_HTML = render_owner_login_page()
-OWNER_DASHBOARD_HTML = render_page(
-    title="管理ページ | Ocean Game Hub",
-    heading="管理ページ",
-    active_page="owner-login",
-    body_html="""<p>登録されたスコアデータを削除できます</p>
+
+
+def render_contact_messages(messages: list[dict[str, str]]) -> str:
+    if not messages:
+        return '<p class="empty-contact-message">お問い合わせはまだ届いていません</p>'
+
+    items = []
+    for contact_message in reversed(messages):
+        name = escape(contact_message["name"])
+        email = escape(contact_message["email"])
+        sent_at = escape(contact_message["sent_at"])
+        body = escape(contact_message["message"])
+        items.append(
+            f"""<li>
+              <strong>{name}</strong>
+              <small>{email} / {sent_at}</small>
+              <p>{body}</p>
+            </li>"""
+        )
+
+    return f'<ul class="contact-message-list">{"".join(items)}</ul>'
+
+
+def render_owner_dashboard_page() -> str:
+    contact_messages_html = render_contact_messages(load_contact_messages())
+    dashboard_body = """<p>登録されたスコアデータとお問い合わせを確認できます</p>
+        <section class="owner-contact-panel">
+          <h3>お問い合わせ</h3>
+          __CONTACT_MESSAGES_HTML__
+        </section>
         <div class="admin-grid">
           <section class="admin-card">
             <button class="admin-toggle" type="button" data-toggle-score="tetris" aria-expanded="false">
@@ -3045,8 +3234,14 @@ OWNER_DASHBOARD_HTML = render_page(
 
           refreshScoreCounts();
           updateDeleteGameButton();
-        </script>""",
-)
+        </script>"""
+
+    return render_page(
+        title="管理ページ | Ocean Game Hub",
+        heading="管理ページ",
+        active_page="owner-login",
+        body_html=dashboard_body.replace("__CONTACT_MESSAGES_HTML__", contact_messages_html),
+    )
 
 
 class GameHubHandler(BaseHTTPRequestHandler):
@@ -3082,7 +3277,7 @@ class GameHubHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/contact":
-            self._send_html(CONTACT_HTML)
+            self._send_html(render_contact_page())
             return
 
         if path == "/owner-login":
@@ -3102,6 +3297,30 @@ class GameHubHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         path = urlparse(self.path).path
 
+        if path == "/contact":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+            form = parse_qs(raw_body)
+            name = form.get("name", [""])[0].strip()
+            email = form.get("email", [""])[0].strip()
+            message = form.get("message", [""])[0].strip()
+
+            if not name or not email or not message:
+                self._send_html(
+                    render_contact_page(
+                        "お名前、メールアドレス、メッセージを入力してください",
+                        is_error=True,
+                        name=name,
+                        email=email,
+                        message=message,
+                    )
+                )
+                return
+
+            add_contact_message(name, email, message)
+            self._send_html(render_contact_page("メッセージを送信しました"))
+            return
+
         if path == "/owner-dashboard":
             content_length = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
@@ -3110,7 +3329,7 @@ class GameHubHandler(BaseHTTPRequestHandler):
             password = form.get("password", [""])[0]
 
             if is_owner_login(address, password):
-                self._send_html(OWNER_DASHBOARD_HTML)
+                self._send_html(render_owner_dashboard_page())
                 return
 
             self._send_html(render_owner_login_page("アドレスまたはパスワードが違います"))

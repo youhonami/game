@@ -531,6 +531,34 @@ STYLE = """
       font-weight: 700;
     }
 
+    .owner-menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 30px;
+    }
+
+    .owner-menu-button {
+      display: grid;
+      place-items: center;
+      min-height: 110px;
+      padding: 20px;
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      background: rgba(28, 150, 205, 0.9);
+      border: 1px solid rgba(190, 245, 255, 0.9);
+      border-radius: 18px;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .owner-menu-button:hover {
+      transform: translateY(-4px);
+      background: rgba(45, 170, 220, 0.95);
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -2961,12 +2989,37 @@ def render_contact_messages(messages: list[dict[str, str]]) -> str:
 
 
 def render_owner_dashboard_page() -> str:
+    return render_page(
+        title="管理ページ | Ocean Game Hub",
+        heading="管理ページ",
+        active_page="owner-login",
+        body_html="""<p>確認したい管理機能を選択してください</p>
+        <div class="owner-menu-grid">
+          <a class="owner-menu-button" href="/owner-scores">スコア削除</a>
+          <a class="owner-menu-button" href="/owner-messages">メッセージ確認</a>
+        </div>
+        <a class="back-link" href="/">トップページに戻る</a>""",
+    )
+
+
+def render_owner_messages_page() -> str:
     contact_messages_html = render_contact_messages(load_contact_messages())
-    dashboard_body = """<p>登録されたスコアデータとお問い合わせを確認できます</p>
+
+    return render_page(
+        title="メッセージ確認 | Ocean Game Hub",
+        heading="メッセージ確認",
+        active_page="owner-login",
+        body_html=f"""<p>お問い合わせから届いたメッセージを確認できます</p>
         <section class="owner-contact-panel">
           <h3>お問い合わせ</h3>
-          __CONTACT_MESSAGES_HTML__
+          {contact_messages_html}
         </section>
+        <a class="back-link" href="/owner-dashboard">管理ページに戻る</a>""",
+    )
+
+
+def render_owner_scores_page() -> str:
+    dashboard_body = """<p>登録されたスコアデータを削除できます</p>
         <div class="admin-grid">
           <section class="admin-card">
             <button class="admin-toggle" type="button" data-toggle-score="tetris" aria-expanded="false">
@@ -3237,10 +3290,10 @@ def render_owner_dashboard_page() -> str:
         </script>"""
 
     return render_page(
-        title="管理ページ | Ocean Game Hub",
-        heading="管理ページ",
+        title="スコア削除 | Ocean Game Hub",
+        heading="スコア削除",
         active_page="owner-login",
-        body_html=dashboard_body.replace("__CONTACT_MESSAGES_HTML__", contact_messages_html),
+        body_html=dashboard_body,
     )
 
 
@@ -3285,7 +3338,15 @@ class GameHubHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/owner-dashboard":
-            self._send_html(OWNER_LOGIN_HTML)
+            self._send_html(render_owner_dashboard_page())
+            return
+
+        if path == "/owner-scores":
+            self._send_html(render_owner_scores_page())
+            return
+
+        if path == "/owner-messages":
+            self._send_html(render_owner_messages_page())
             return
 
         if path == "/assets/background.png":

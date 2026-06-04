@@ -617,6 +617,22 @@ STYLE = """
       white-space: pre-wrap;
     }
 
+    .contact-delete-form {
+      margin-top: 12px;
+      text-align: right;
+    }
+
+    .contact-delete-form button {
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(210, 60, 80, 0.9);
+      border: 1px solid rgba(255, 190, 200, 0.8);
+      border-radius: 10px;
+    }
+
     .back-link {
       display: inline-block;
       margin-top: 28px;
@@ -733,6 +749,16 @@ def add_contact_message(name: str, email: str, message: str) -> None:
         }
     )
     save_contact_messages(messages)
+
+
+def delete_contact_message(message_index: int) -> bool:
+    messages = load_contact_messages()
+    if message_index < 0 or message_index >= len(messages):
+        return False
+
+    messages.pop(message_index)
+    save_contact_messages(messages)
+    return True
 
 
 HOME_HTML = render_page(
@@ -2972,7 +2998,7 @@ def render_contact_messages(messages: list[dict[str, str]]) -> str:
         return '<p class="empty-contact-message">お問い合わせはまだ届いていません</p>'
 
     items = []
-    for contact_message in reversed(messages):
+    for message_index, contact_message in reversed(list(enumerate(messages))):
         name = escape(contact_message["name"])
         email = escape(contact_message["email"])
         sent_at = escape(contact_message["sent_at"])
@@ -2982,6 +3008,10 @@ def render_contact_messages(messages: list[dict[str, str]]) -> str:
               <strong>{name}</strong>
               <small>{email} / {sent_at}</small>
               <p>{body}</p>
+              <form class="contact-delete-form" action="/owner-messages/delete" method="post">
+                <input type="hidden" name="message_index" value="{message_index}">
+                <button type="submit">削除</button>
+              </form>
             </li>"""
         )
 
@@ -3002,8 +3032,13 @@ def render_owner_dashboard_page() -> str:
     )
 
 
-def render_owner_messages_page() -> str:
+def render_owner_messages_page(status_message: str = "") -> str:
     contact_messages_html = render_contact_messages(load_contact_messages())
+    status_html = (
+        f'<div class="success-message">{escape(status_message)}</div>'
+        if status_message
+        else ""
+    )
 
     return render_page(
         title="メッセージ確認 | Ocean Game Hub",
@@ -3014,6 +3049,7 @@ def render_owner_messages_page() -> str:
           <h3>お問い合わせ</h3>
           {contact_messages_html}
         </section>
+        {status_html}
         <a class="back-link" href="/owner-dashboard">管理ページに戻る</a>""",
     )
 
@@ -3394,6 +3430,23 @@ class GameHubHandler(BaseHTTPRequestHandler):
                 return
 
             self._send_html(render_owner_login_page("アドレスまたはパスワードが違います"))
+            return
+
+        if path == "/owner-messages/delete":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+            form = parse_qs(raw_body)
+
+            try:
+                message_index = int(form.get("message_index", ["-1"])[0])
+            except ValueError:
+                message_index = -1
+
+            if delete_contact_message(message_index):
+                self._send_html(render_owner_messages_page("メッセージを削除しました"))
+                return
+
+            self._send_html(render_owner_messages_page("削除するメッセージが見つかりませんでした"))
             return
 
         self.send_error(404)

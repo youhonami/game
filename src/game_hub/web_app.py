@@ -3063,7 +3063,7 @@ def render_owner_scores_page() -> str:
           <button class="danger-button" id="delete-all-scores" type="button">全ゲームのスコアを削除</button>
         </div>
         <p class="admin-message" id="admin-score-message"></p>
-        <a class="back-link" href="/">トップページに戻る</a>
+        <a class="back-link" href="/owner-dashboard">管理ページに戻る</a>
         <script>
           const scoreStores = {
             tetris: {

@@ -661,6 +661,7 @@ def render_page(
     puyopuyo_class = "active" if active_page == "puyopuyo" else ""
     breakout_class = "active" if active_page == "breakout" else ""
     ludo_class = "active" if active_page == "ludo" else ""
+    trump_class = "active" if active_page == "trump" else ""
     ranking_class = "active" if active_page == "ranking" else ""
     contact_class = "active" if active_page == "contact" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
@@ -687,6 +688,7 @@ def render_page(
         <a class="{puyopuyo_class}" href="/puyopuyo">ぷよぷよ</a>
         <a class="{breakout_class}" href="/breakout">ブロック崩し</a>
         <a class="{ludo_class}" href="/ludo">ルドー</a>
+        <a class="{trump_class}" href="/trump">トランプ</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
         <a class="{contact_class}" href="/contact">お問い合わせ</a>
       </nav>
@@ -3235,6 +3237,12 @@ LUDO_HTML = render_page(
           startGame();
         </script>""",
 )
+TRUMP_HTML = render_page(
+    title="トランプ | Ocean Game Hub",
+    heading="トランプ",
+    active_page="trump",
+    message="このページは後日作成します",
+)
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",
     heading="ランキング",
@@ -3730,6 +3738,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/ludo":
             self._send_html(LUDO_HTML)
+            return
+
+        if path == "/trump":
+            self._send_html(TRUMP_HTML)
             return
 
         if path in {"/ranking", "/score"}:

@@ -564,6 +564,34 @@ STYLE = """
       background: rgba(45, 170, 220, 0.95);
     }
 
+    .game-select-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 18px;
+      margin-top: 30px;
+    }
+
+    .game-select-button {
+      display: grid;
+      place-items: center;
+      min-height: 120px;
+      padding: 20px;
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      background: rgba(28, 150, 205, 0.9);
+      border: 1px solid rgba(190, 245, 255, 0.9);
+      border-radius: 18px;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .game-select-button:hover {
+      transform: translateY(-4px);
+      background: rgba(45, 170, 220, 0.95);
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -3241,6 +3269,29 @@ TRUMP_HTML = render_page(
     title="トランプ | Ocean Game Hub",
     heading="トランプ",
     active_page="trump",
+    body_html="""<p>遊びたいトランプゲームを選んでください</p>
+        <div class="game-select-grid">
+          <a class="game-select-button" href="/trump/old-maid">ババ抜き</a>
+          <a class="game-select-button" href="/trump/sevens">七並べ</a>
+          <a class="game-select-button" href="/trump/memory">神経衰弱</a>
+        </div>""",
+)
+OLD_MAID_HTML = render_page(
+    title="ババ抜き | Ocean Game Hub",
+    heading="ババ抜き",
+    active_page="trump",
+    message="このページは後日作成します",
+)
+SEVENS_HTML = render_page(
+    title="七並べ | Ocean Game Hub",
+    heading="七並べ",
+    active_page="trump",
+    message="このページは後日作成します",
+)
+MEMORY_HTML = render_page(
+    title="神経衰弱 | Ocean Game Hub",
+    heading="神経衰弱",
+    active_page="trump",
     message="このページは後日作成します",
 )
 RANKING_HTML = render_page(
@@ -3742,6 +3793,18 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/trump":
             self._send_html(TRUMP_HTML)
+            return
+
+        if path == "/trump/old-maid":
+            self._send_html(OLD_MAID_HTML)
+            return
+
+        if path == "/trump/sevens":
+            self._send_html(SEVENS_HTML)
+            return
+
+        if path == "/trump/memory":
+            self._send_html(MEMORY_HTML)
             return
 
         if path in {"/ranking", "/score"}:

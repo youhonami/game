@@ -592,6 +592,119 @@ STYLE = """
       background: rgba(45, 170, 220, 0.95);
     }
 
+    .old-maid-setup {
+      display: grid;
+      gap: 18px;
+      max-width: 420px;
+      margin: 30px auto 0;
+      text-align: left;
+    }
+
+    .old-maid-setup label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .old-maid-setup select {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 18px;
+      background: rgba(0, 18, 40, 0.72);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .old-maid-table {
+      display: grid;
+      gap: 18px;
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .old-maid-table[hidden] {
+      display: none;
+    }
+
+    .old-maid-players {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .old-maid-player {
+      padding: 16px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 16px;
+    }
+
+    .old-maid-player.is-active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
+    }
+
+    .old-maid-player h3 {
+      margin: 0 0 10px;
+      color: #9feaff;
+      font-size: 18px;
+    }
+
+    .old-maid-player p {
+      margin: 0;
+      color: #ffffff;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .old-maid-card-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 70px;
+      margin-top: 10px;
+    }
+
+    .old-maid-card,
+    .old-maid-card-back {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 66px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      background: rgba(4, 32, 64, 0.9);
+      border: 1px solid rgba(150, 235, 255, 0.6);
+      border-radius: 10px;
+    }
+
+    .old-maid-card.is-joker {
+      color: #ffdce5;
+      background: rgba(130, 22, 58, 0.9);
+      border-color: rgba(255, 190, 210, 0.82);
+    }
+
+    .old-maid-card-back {
+      cursor: pointer;
+      background: rgba(28, 150, 205, 0.88);
+    }
+
+    .old-maid-card-back:hover {
+      transform: translateY(-3px);
+      background: rgba(45, 170, 220, 0.95);
+    }
+
+    .old-maid-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -3280,7 +3393,283 @@ OLD_MAID_HTML = render_page(
     title="ババ抜き | Ocean Game Hub",
     heading="ババ抜き",
     active_page="trump",
-    message="このページは後日作成します",
+    body_html="""<p>プレイヤー人数を選んでババ抜きを始めましょう</p>
+        <section class="old-maid-setup" id="old-maid-setup">
+          <label>
+            プレイヤー人数
+            <select id="old-maid-player-count">
+              <option value="2">2人</option>
+              <option value="3">3人</option>
+              <option value="4" selected>4人</option>
+              <option value="5">5人</option>
+              <option value="6">6人</option>
+            </select>
+          </label>
+          <button class="primary-button" id="old-maid-start" type="button">ゲーム開始</button>
+        </section>
+        <section class="old-maid-table" id="old-maid-table" hidden>
+          <div class="info-card">
+            <h3>状態</h3>
+            <p id="old-maid-status">人数を選んでゲームを開始してください</p>
+          </div>
+          <div class="old-maid-actions">
+            <button class="primary-button" id="old-maid-next" type="button" hidden>CPUのターンを進める</button>
+            <button class="primary-button" id="old-maid-reset" type="button">人数設定に戻る</button>
+          </div>
+          <div class="old-maid-players" id="old-maid-players"></div>
+        </section>
+        <script>
+          const setupElement = document.getElementById("old-maid-setup");
+          const tableElement = document.getElementById("old-maid-table");
+          const playerCountSelect = document.getElementById("old-maid-player-count");
+          const startButton = document.getElementById("old-maid-start");
+          const resetButton = document.getElementById("old-maid-reset");
+          const nextButton = document.getElementById("old-maid-next");
+          const statusElement = document.getElementById("old-maid-status");
+          const playersElement = document.getElementById("old-maid-players");
+
+          const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+          const suits = ["♠", "♥", "♦", "♣"];
+          let players = [];
+          let currentPlayerIndex = 0;
+          let isGameOver = false;
+
+          function createDeck() {
+            const deck = [];
+            ranks.forEach((rank) => {
+              suits.forEach((suit) => {
+                deck.push({
+                  rank,
+                  suit,
+                  label: `${rank}${suit}`,
+                  isJoker: false,
+                });
+              });
+            });
+            deck.push({
+              rank: "JOKER",
+              suit: "",
+              label: "Joker",
+              isJoker: true,
+            });
+            return deck;
+          }
+
+          function shuffle(cards) {
+            for (let index = cards.length - 1; index > 0; index -= 1) {
+              const swapIndex = Math.floor(Math.random() * (index + 1));
+              [cards[index], cards[swapIndex]] = [cards[swapIndex], cards[index]];
+            }
+            return cards;
+          }
+
+          function createPlayers(playerCount) {
+            return Array.from({ length: playerCount }, (_, index) => ({
+              name: index === 0 ? "あなた" : `CPU ${index}`,
+              hand: [],
+              isOut: false,
+            }));
+          }
+
+          function dealCards(deck) {
+            deck.forEach((card, index) => {
+              players[index % players.length].hand.push(card);
+            });
+          }
+
+          function removePairs(player) {
+            const rankCounts = new Map();
+            player.hand.forEach((card) => {
+              if (card.isJoker) {
+                return;
+              }
+              rankCounts.set(card.rank, (rankCounts.get(card.rank) || 0) + 1);
+            });
+
+            const removeByRank = new Map();
+            rankCounts.forEach((count, rank) => {
+              removeByRank.set(rank, count - (count % 2));
+            });
+
+            player.hand = player.hand.filter((card) => {
+              const removableCount = removeByRank.get(card.rank) || 0;
+              if (card.isJoker || removableCount <= 0) {
+                return true;
+              }
+              removeByRank.set(card.rank, removableCount - 1);
+              return false;
+            });
+
+            player.isOut = player.hand.length === 0;
+          }
+
+          function removeAllPairs() {
+            players.forEach(removePairs);
+          }
+
+          function getActivePlayers() {
+            return players.filter((player) => !player.isOut);
+          }
+
+          function normalizeCurrentPlayer() {
+            if (getActivePlayers().length <= 1) {
+              return;
+            }
+
+            while (players[currentPlayerIndex].isOut) {
+              currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            }
+          }
+
+          function findNextOpponentIndex(playerIndex) {
+            for (let offset = 1; offset < players.length; offset += 1) {
+              const nextIndex = (playerIndex + offset) % players.length;
+              if (!players[nextIndex].isOut && players[nextIndex].hand.length > 0) {
+                return nextIndex;
+              }
+            }
+            return -1;
+          }
+
+          function getGameResult() {
+            const activePlayers = getActivePlayers();
+            if (activePlayers.length > 1) {
+              return "";
+            }
+
+            const loser = activePlayers[0];
+            if (!loser) {
+              return "全員あがりました";
+            }
+            return `${loser.name} がババを持って負けです`;
+          }
+
+          function checkGameOver() {
+            if (getActivePlayers().length > 1) {
+              return false;
+            }
+
+            isGameOver = true;
+            nextButton.hidden = true;
+            statusElement.textContent = getGameResult();
+            render();
+            return true;
+          }
+
+          function advanceTurn(extraMessage = "") {
+            if (checkGameOver()) {
+              return;
+            }
+
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            normalizeCurrentPlayer();
+
+            const currentPlayer = players[currentPlayerIndex];
+            const opponentIndex = findNextOpponentIndex(currentPlayerIndex);
+            const opponent = players[opponentIndex];
+            const turnMessage = `${currentPlayer.name} の番です。${opponent.name} からカードを引きます`;
+            statusElement.textContent = extraMessage ? `${extraMessage} ${turnMessage}` : turnMessage;
+            nextButton.hidden = currentPlayerIndex === 0 || isGameOver;
+            render();
+          }
+
+          function drawCard(playerIndex, opponentIndex, cardIndex) {
+            const player = players[playerIndex];
+            const opponent = players[opponentIndex];
+            const [card] = opponent.hand.splice(cardIndex, 1);
+            player.hand.push(card);
+            removePairs(player);
+            removePairs(opponent);
+            advanceTurn(`${player.name} が1枚引きました。`);
+          }
+
+          function cpuDraw() {
+            if (isGameOver || currentPlayerIndex === 0) {
+              return;
+            }
+
+            const opponentIndex = findNextOpponentIndex(currentPlayerIndex);
+            if (opponentIndex < 0) {
+              checkGameOver();
+              return;
+            }
+
+            const opponent = players[opponentIndex];
+            const cardIndex = Math.floor(Math.random() * opponent.hand.length);
+            drawCard(currentPlayerIndex, opponentIndex, cardIndex);
+          }
+
+          function renderPlayer(player, playerIndex) {
+            const isCurrentPlayer = playerIndex === currentPlayerIndex && !isGameOver;
+            const opponentIndex = findNextOpponentIndex(currentPlayerIndex);
+            const isDrawableOpponent = currentPlayerIndex === 0 && playerIndex === opponentIndex && !isGameOver;
+            const handContent = player.hand.map((card, cardIndex) => {
+              if (playerIndex === 0 || isGameOver) {
+                const jokerClass = card.isJoker ? " is-joker" : "";
+                return `<span class="old-maid-card${jokerClass}">${card.label}</span>`;
+              }
+
+              if (isDrawableOpponent) {
+                return `<button class="old-maid-card-back" type="button" data-card-index="${cardIndex}">?</button>`;
+              }
+
+              return '<span class="old-maid-card-back">?</span>';
+            }).join("");
+
+            return `<section class="old-maid-player${isCurrentPlayer ? " is-active" : ""}">
+              <h3>${player.name}</h3>
+              <p>${player.isOut ? "あがり" : `残り ${player.hand.length} 枚`}</p>
+              <div class="old-maid-card-row">${handContent || "<p>手札なし</p>"}</div>
+            </section>`;
+          }
+
+          function render() {
+            playersElement.innerHTML = players.map(renderPlayer).join("");
+            playersElement.querySelectorAll("[data-card-index]").forEach((button) => {
+              button.addEventListener("click", () => {
+                if (currentPlayerIndex !== 0 || isGameOver) {
+                  return;
+                }
+
+                const opponentIndex = findNextOpponentIndex(0);
+                drawCard(0, opponentIndex, Number(button.dataset.cardIndex));
+              });
+            });
+          }
+
+          function startGame() {
+            const playerCount = Number(playerCountSelect.value);
+            players = createPlayers(playerCount);
+            currentPlayerIndex = 0;
+            isGameOver = false;
+
+            dealCards(shuffle(createDeck()));
+            removeAllPairs();
+            normalizeCurrentPlayer();
+
+            setupElement.hidden = true;
+            tableElement.hidden = false;
+            nextButton.hidden = true;
+            statusElement.textContent = "あなたの番です。右隣の相手からカードを1枚選んでください";
+            render();
+            checkGameOver();
+          }
+
+          function resetGame() {
+            players = [];
+            currentPlayerIndex = 0;
+            isGameOver = false;
+            setupElement.hidden = false;
+            tableElement.hidden = true;
+            nextButton.hidden = true;
+            statusElement.textContent = "人数を選んでゲームを開始してください";
+            playersElement.innerHTML = "";
+          }
+
+          startButton.addEventListener("click", startGame);
+          resetButton.addEventListener("click", resetGame);
+          nextButton.addEventListener("click", cpuDraw);
+        </script>""",
 )
 SEVENS_HTML = render_page(
     title="七並べ | Ocean Game Hub",

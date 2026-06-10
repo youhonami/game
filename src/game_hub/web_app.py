@@ -622,6 +622,8 @@ STYLE = """
     .old-maid-table {
       display: grid;
       gap: 18px;
+      width: 900px;
+      max-width: calc(100vw - 420px);
       margin-top: 30px;
       text-align: left;
     }
@@ -632,11 +634,16 @@ STYLE = """
 
     .old-maid-players {
       display: grid;
-      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
+      align-items: stretch;
     }
 
     .old-maid-player {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-width: 0;
+      min-height: 250px;
       padding: 16px;
       background: rgba(0, 18, 40, 0.68);
       border: 1px solid rgba(150, 235, 255, 0.5);
@@ -664,9 +671,13 @@ STYLE = """
     .old-maid-card-row {
       display: flex;
       flex-wrap: wrap;
+      align-content: flex-start;
       gap: 8px;
-      min-height: 70px;
+      height: 150px;
       margin-top: 10px;
+      padding-right: 6px;
+      min-width: 0;
+      overflow-y: auto;
     }
 
     .old-maid-card,

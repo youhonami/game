@@ -668,6 +668,11 @@ STYLE = """
       line-height: 1.7;
     }
 
+    .old-maid-rank {
+      color: #9feaff;
+      font-weight: 700;
+    }
+
     .old-maid-card-row {
       display: flex;
       flex-wrap: wrap;
@@ -3443,6 +3448,7 @@ OLD_MAID_HTML = render_page(
           const suits = ["♠", "♥", "♦", "♣"];
           let players = [];
           let currentPlayerIndex = 0;
+          let finishedOrder = [];
           let isGameOver = false;
 
           function createDeck() {
@@ -3479,6 +3485,7 @@ OLD_MAID_HTML = render_page(
               name: index === 0 ? "あなた" : `CPU ${index}`,
               hand: [],
               isOut: false,
+              finishedRank: null,
             }));
           }
 
@@ -3486,6 +3493,16 @@ OLD_MAID_HTML = render_page(
             deck.forEach((card, index) => {
               players[index % players.length].hand.push(card);
             });
+          }
+
+          function markPlayerOut(player) {
+            if (player.hand.length > 0 || player.finishedRank !== null) {
+              return;
+            }
+
+            finishedOrder.push(player.name);
+            player.isOut = true;
+            player.finishedRank = finishedOrder.length;
           }
 
           function removePairs(player) {
@@ -3511,7 +3528,7 @@ OLD_MAID_HTML = render_page(
               return false;
             });
 
-            player.isOut = player.hand.length === 0;
+            markPlayerOut(player);
           }
 
           function removeAllPairs() {
@@ -3552,12 +3569,18 @@ OLD_MAID_HTML = render_page(
             if (!loser) {
               return "全員あがりました";
             }
-            return `${loser.name} がババを持って負けです`;
+            const loserRank = players.length;
+            return `${loser.name} がババを持って負けです。最終順位: ${loserRank}位`;
           }
 
           function checkGameOver() {
             if (getActivePlayers().length > 1) {
               return false;
+            }
+
+            const loser = getActivePlayers()[0];
+            if (loser && loser.finishedRank === null) {
+              loser.finishedRank = players.length;
             }
 
             isGameOver = true;
@@ -3614,6 +3637,11 @@ OLD_MAID_HTML = render_page(
             const isCurrentPlayer = playerIndex === currentPlayerIndex && !isGameOver;
             const opponentIndex = findNextOpponentIndex(currentPlayerIndex);
             const isDrawableOpponent = currentPlayerIndex === 0 && playerIndex === opponentIndex && !isGameOver;
+            const rankLabel = player.finishedRank
+              ? `<span class="old-maid-rank">${player.finishedRank}位であがり</span>`
+              : player.isOut
+                ? '<span class="old-maid-rank">あがり</span>'
+                : `残り ${player.hand.length} 枚`;
             const handContent = player.hand.map((card, cardIndex) => {
               if (playerIndex === 0 || isGameOver) {
                 const jokerClass = card.isJoker ? " is-joker" : "";
@@ -3629,7 +3657,7 @@ OLD_MAID_HTML = render_page(
 
             return `<section class="old-maid-player${isCurrentPlayer ? " is-active" : ""}">
               <h3>${player.name}</h3>
-              <p>${player.isOut ? "あがり" : `残り ${player.hand.length} 枚`}</p>
+              <p>${rankLabel}</p>
               <div class="old-maid-card-row">${handContent || "<p>手札なし</p>"}</div>
             </section>`;
           }
@@ -3652,6 +3680,7 @@ OLD_MAID_HTML = render_page(
             const playerCount = Number(playerCountSelect.value);
             players = createPlayers(playerCount);
             currentPlayerIndex = 0;
+            finishedOrder = [];
             isGameOver = false;
 
             dealCards(shuffle(createDeck()));
@@ -3669,6 +3698,7 @@ OLD_MAID_HTML = render_page(
           function resetGame() {
             players = [];
             currentPlayerIndex = 0;
+            finishedOrder = [];
             isGameOver = false;
             setupElement.hidden = false;
             tableElement.hidden = true;

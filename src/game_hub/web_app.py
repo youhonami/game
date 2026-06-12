@@ -721,6 +721,156 @@ STYLE = """
       gap: 14px;
     }
 
+    .sevens-setup {
+      display: grid;
+      gap: 18px;
+      max-width: 420px;
+      margin: 30px auto 0;
+      text-align: left;
+    }
+
+    .sevens-setup label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .sevens-setup select {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 18px;
+      background: rgba(0, 18, 40, 0.72);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .sevens-table {
+      display: grid;
+      gap: 18px;
+      width: 980px;
+      max-width: calc(100vw - 420px);
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .sevens-table[hidden] {
+      display: none;
+    }
+
+    .sevens-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .sevens-board {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .sevens-row {
+      display: grid;
+      grid-template-columns: 36px repeat(13, minmax(0, 1fr));
+      gap: 6px;
+      align-items: center;
+    }
+
+    .sevens-suit {
+      color: #9feaff;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .sevens-slot,
+    .sevens-card {
+      display: grid;
+      place-items: center;
+      min-width: 44px;
+      height: 58px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      background: rgba(4, 32, 64, 0.72);
+      border: 1px dashed rgba(150, 235, 255, 0.32);
+      border-radius: 10px;
+    }
+
+    .sevens-card {
+      cursor: default;
+      background: rgba(4, 32, 64, 0.92);
+      border-style: solid;
+      border-color: rgba(150, 235, 255, 0.62);
+    }
+
+    .sevens-card.is-red {
+      color: #ffdce5;
+      border-color: rgba(255, 190, 210, 0.76);
+    }
+
+    .sevens-card.is-playable {
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
+    }
+
+    .sevens-card.is-playable:hover {
+      transform: translateY(-3px);
+      background: rgba(28, 150, 205, 0.9);
+    }
+
+    .sevens-hand {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 8px;
+      height: 146px;
+      padding: 12px;
+      overflow-y: auto;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 16px;
+    }
+
+    .sevens-players {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .sevens-player {
+      min-width: 0;
+      padding: 14px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 16px;
+    }
+
+    .sevens-player.is-active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
+    }
+
+    .sevens-player h3 {
+      margin: 0 0 8px;
+      color: #9feaff;
+      font-size: 18px;
+    }
+
+    .sevens-player p {
+      margin: 0;
+      color: #ffffff;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -3716,7 +3866,357 @@ SEVENS_HTML = render_page(
     title="七並べ | Ocean Game Hub",
     heading="七並べ",
     active_page="trump",
-    message="このページは後日作成します",
+    body_html="""<p>プレイヤー人数を選んで七並べを始めましょう</p>
+        <section class="sevens-setup" id="sevens-setup">
+          <label>
+            プレイヤー人数
+            <select id="sevens-player-count">
+              <option value="2">2人</option>
+              <option value="3">3人</option>
+              <option value="4" selected>4人</option>
+              <option value="5">5人</option>
+              <option value="6">6人</option>
+            </select>
+          </label>
+          <button class="primary-button" id="sevens-start" type="button">ゲーム開始</button>
+        </section>
+        <section class="sevens-table" id="sevens-table" hidden>
+          <div class="info-card">
+            <h3>状態</h3>
+            <p id="sevens-status">人数を選んでゲームを開始してください</p>
+          </div>
+          <div class="sevens-actions">
+            <button class="primary-button" id="sevens-pass" type="button">パス</button>
+            <button class="primary-button" id="sevens-next" type="button" hidden>CPUのターンを進める</button>
+            <button class="primary-button" id="sevens-reset" type="button">人数設定に戻る</button>
+          </div>
+          <div class="sevens-board" id="sevens-board"></div>
+          <div>
+            <div class="info-card">
+              <h3>あなたの手札</h3>
+              <p>出せるカードは光ります。クリックして場に出してください。</p>
+            </div>
+            <div class="sevens-hand" id="sevens-hand"></div>
+          </div>
+          <div class="sevens-players" id="sevens-players"></div>
+        </section>
+        <script>
+          const sevensSetupElement = document.getElementById("sevens-setup");
+          const sevensTableElement = document.getElementById("sevens-table");
+          const sevensPlayerCountSelect = document.getElementById("sevens-player-count");
+          const sevensStartButton = document.getElementById("sevens-start");
+          const sevensResetButton = document.getElementById("sevens-reset");
+          const sevensPassButton = document.getElementById("sevens-pass");
+          const sevensNextButton = document.getElementById("sevens-next");
+          const sevensStatusElement = document.getElementById("sevens-status");
+          const sevensBoardElement = document.getElementById("sevens-board");
+          const sevensHandElement = document.getElementById("sevens-hand");
+          const sevensPlayersElement = document.getElementById("sevens-players");
+
+          const sevensRanks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+          const sevensSuits = ["♠", "♥", "♦", "♣"];
+          let sevensPlayers = [];
+          let sevensBoard = {};
+          let sevensCurrentPlayerIndex = 0;
+          let sevensFinishedOrder = [];
+          let sevensIsGameOver = false;
+
+          function createSevensDeck() {
+            const deck = [];
+            sevensSuits.forEach((suit) => {
+              sevensRanks.forEach((rank, rankIndex) => {
+                deck.push({
+                  suit,
+                  rank,
+                  rankIndex,
+                  label: `${rank}${suit}`,
+                });
+              });
+            });
+            return deck;
+          }
+
+          function shuffleSevensCards(cards) {
+            for (let index = cards.length - 1; index > 0; index -= 1) {
+              const swapIndex = Math.floor(Math.random() * (index + 1));
+              [cards[index], cards[swapIndex]] = [cards[swapIndex], cards[index]];
+            }
+            return cards;
+          }
+
+          function createSevensPlayers(playerCount) {
+            return Array.from({ length: playerCount }, (_, index) => ({
+              name: index === 0 ? "あなた" : `CPU ${index}`,
+              hand: [],
+              isOut: false,
+              finishedRank: null,
+              passCount: 0,
+            }));
+          }
+
+          function createSevensBoard() {
+            return Object.fromEntries(
+              sevensSuits.map((suit) => [
+                suit,
+                { low: 6, high: 6, cards: new Set([6]) },
+              ])
+            );
+          }
+
+          function dealSevensCards(deck) {
+            deck.forEach((card, index) => {
+              if (card.rankIndex === 6) {
+                return;
+              }
+              sevensPlayers[index % sevensPlayers.length].hand.push(card);
+            });
+            sevensPlayers.forEach(sortSevensHand);
+          }
+
+          function sortSevensHand(player) {
+            player.hand.sort((left, right) => {
+              const suitDiff = sevensSuits.indexOf(left.suit) - sevensSuits.indexOf(right.suit);
+              return suitDiff || left.rankIndex - right.rankIndex;
+            });
+          }
+
+          function isSevensRed(cardOrSuit) {
+            const suit = typeof cardOrSuit === "string" ? cardOrSuit : cardOrSuit.suit;
+            return suit === "♥" || suit === "♦";
+          }
+
+          function canPlaySevensCard(card) {
+            const suitBoard = sevensBoard[card.suit];
+            return card.rankIndex === suitBoard.low - 1 || card.rankIndex === suitBoard.high + 1;
+          }
+
+          function getPlayableSevensCards(player) {
+            if (player.isOut) {
+              return [];
+            }
+            return player.hand.filter(canPlaySevensCard);
+          }
+
+          function markSevensPlayerOut(player) {
+            if (player.hand.length > 0 || player.finishedRank !== null) {
+              return;
+            }
+            sevensFinishedOrder.push(player.name);
+            player.isOut = true;
+            player.finishedRank = sevensFinishedOrder.length;
+          }
+
+          function getActiveSevensPlayers() {
+            return sevensPlayers.filter((player) => !player.isOut);
+          }
+
+          function normalizeSevensCurrentPlayer() {
+            if (getActiveSevensPlayers().length === 0) {
+              return;
+            }
+            while (sevensPlayers[sevensCurrentPlayerIndex].isOut) {
+              sevensCurrentPlayerIndex = (sevensCurrentPlayerIndex + 1) % sevensPlayers.length;
+            }
+          }
+
+          function getSevensResult() {
+            const loserNames = sevensPlayers
+              .filter((player) => !player.isOut)
+              .map((player) => player.name);
+            if (loserNames.length === 0) {
+              return "全員があがりました";
+            }
+            return `ゲーム終了。未完了: ${loserNames.join("、")}`;
+          }
+
+          function checkSevensGameOver() {
+            if (sevensPlayers.every((player) => player.isOut)) {
+              sevensIsGameOver = true;
+            }
+
+            const playableExists = sevensPlayers.some((player) => getPlayableSevensCards(player).length > 0);
+            if (!playableExists && getActiveSevensPlayers().length > 0) {
+              sevensIsGameOver = true;
+            }
+
+            if (!sevensIsGameOver) {
+              return false;
+            }
+
+            sevensPassButton.hidden = true;
+            sevensNextButton.hidden = true;
+            sevensStatusElement.textContent = getSevensResult();
+            renderSevens();
+            return true;
+          }
+
+          function advanceSevensTurn(message = "") {
+            if (checkSevensGameOver()) {
+              return;
+            }
+
+            sevensCurrentPlayerIndex = (sevensCurrentPlayerIndex + 1) % sevensPlayers.length;
+            normalizeSevensCurrentPlayer();
+            const player = sevensPlayers[sevensCurrentPlayerIndex];
+            const playableCards = getPlayableSevensCards(player);
+            const turnMessage = playableCards.length > 0
+              ? `${player.name} の番です。出せるカードがあります`
+              : `${player.name} の番です。出せるカードがないためパスします`;
+            sevensStatusElement.textContent = message ? `${message} ${turnMessage}` : turnMessage;
+            renderSevens();
+
+            if (sevensCurrentPlayerIndex !== 0 && playableCards.length === 0) {
+              setTimeout(() => passSevensTurn(), 500);
+            }
+          }
+
+          function playSevensCard(playerIndex, handIndex) {
+            if (sevensIsGameOver) {
+              return;
+            }
+
+            const player = sevensPlayers[playerIndex];
+            const card = player.hand[handIndex];
+            if (!card || !canPlaySevensCard(card)) {
+              return;
+            }
+
+            player.hand.splice(handIndex, 1);
+            const suitBoard = sevensBoard[card.suit];
+            suitBoard.cards.add(card.rankIndex);
+            suitBoard.low = Math.min(suitBoard.low, card.rankIndex);
+            suitBoard.high = Math.max(suitBoard.high, card.rankIndex);
+            player.passCount = 0;
+            markSevensPlayerOut(player);
+            advanceSevensTurn(`${player.name} が ${card.label} を出しました。`);
+          }
+
+          function passSevensTurn() {
+            if (sevensIsGameOver) {
+              return;
+            }
+
+            const player = sevensPlayers[sevensCurrentPlayerIndex];
+            const playableCards = getPlayableSevensCards(player);
+            if (playableCards.length > 0 && sevensCurrentPlayerIndex === 0) {
+              sevensStatusElement.textContent = "出せるカードがあります。カードを出してください";
+              renderSevens();
+              return;
+            }
+
+            player.passCount += 1;
+            advanceSevensTurn(`${player.name} がパスしました。`);
+          }
+
+          function cpuPlaySevensTurn() {
+            if (sevensIsGameOver || sevensCurrentPlayerIndex === 0) {
+              return;
+            }
+
+            const player = sevensPlayers[sevensCurrentPlayerIndex];
+            const playableCards = getPlayableSevensCards(player);
+            if (playableCards.length === 0) {
+              passSevensTurn();
+              return;
+            }
+
+            const selectedCard = playableCards
+              .slice()
+              .sort((left, right) => Math.abs(left.rankIndex - 6) - Math.abs(right.rankIndex - 6))[0];
+            playSevensCard(sevensCurrentPlayerIndex, player.hand.indexOf(selectedCard));
+          }
+
+          function renderSevensBoard() {
+            sevensBoardElement.innerHTML = sevensSuits.map((suit) => {
+              const suitBoard = sevensBoard[suit];
+              const rowCards = sevensRanks.map((rank, rankIndex) => {
+                if (!suitBoard.cards.has(rankIndex)) {
+                  return '<span class="sevens-slot"></span>';
+                }
+                const redClass = isSevensRed(suit) ? " is-red" : "";
+                return `<span class="sevens-card${redClass}">${rank}${suit}</span>`;
+              }).join("");
+              return `<div class="sevens-row"><span class="sevens-suit">${suit}</span>${rowCards}</div>`;
+            }).join("");
+          }
+
+          function renderSevensHand() {
+            const player = sevensPlayers[0];
+            const playableCards = getPlayableSevensCards(player);
+            sevensHandElement.innerHTML = player.hand.map((card, handIndex) => {
+              const redClass = isSevensRed(card) ? " is-red" : "";
+              const playableClass = playableCards.includes(card) && sevensCurrentPlayerIndex === 0 && !sevensIsGameOver
+                ? " is-playable"
+                : "";
+              return `<button class="sevens-card${redClass}${playableClass}" type="button" data-hand-index="${handIndex}">${card.label}</button>`;
+            }).join("") || "<p>手札なし</p>";
+
+            sevensHandElement.querySelectorAll("[data-hand-index]").forEach((button) => {
+              button.addEventListener("click", () => {
+                if (sevensCurrentPlayerIndex !== 0 || sevensIsGameOver) {
+                  return;
+                }
+                playSevensCard(0, Number(button.dataset.handIndex));
+              });
+            });
+          }
+
+          function renderSevensPlayers() {
+            sevensPlayersElement.innerHTML = sevensPlayers.map((player, playerIndex) => {
+              const isActive = playerIndex === sevensCurrentPlayerIndex && !sevensIsGameOver;
+              const rankLabel = player.finishedRank ? `${player.finishedRank}位であがり` : `残り ${player.hand.length} 枚`;
+              return `<section class="sevens-player${isActive ? " is-active" : ""}">
+                <h3>${player.name}</h3>
+                <p>${rankLabel}</p>
+                <p>パス: ${player.passCount}回</p>
+              </section>`;
+            }).join("");
+          }
+
+          function renderSevens() {
+            renderSevensBoard();
+            renderSevensHand();
+            renderSevensPlayers();
+            sevensPassButton.hidden = sevensIsGameOver || sevensCurrentPlayerIndex !== 0;
+            sevensNextButton.hidden = sevensIsGameOver || sevensCurrentPlayerIndex === 0;
+          }
+
+          function startSevensGame() {
+            const playerCount = Number(sevensPlayerCountSelect.value);
+            sevensPlayers = createSevensPlayers(playerCount);
+            sevensBoard = createSevensBoard();
+            sevensCurrentPlayerIndex = 0;
+            sevensFinishedOrder = [];
+            sevensIsGameOver = false;
+
+            dealSevensCards(shuffleSevensCards(createSevensDeck()));
+            normalizeSevensCurrentPlayer();
+            sevensSetupElement.hidden = true;
+            sevensTableElement.hidden = false;
+            sevensStatusElement.textContent = "あなたの番です。出せるカードをクリックしてください";
+            renderSevens();
+            checkSevensGameOver();
+          }
+
+          function resetSevensGame() {
+            sevensPlayers = [];
+            sevensBoard = {};
+            sevensCurrentPlayerIndex = 0;
+            sevensFinishedOrder = [];
+            sevensIsGameOver = false;
+            sevensSetupElement.hidden = false;
+            sevensTableElement.hidden = true;
+            sevensStatusElement.textContent = "人数を選んでゲームを開始してください";
+            sevensBoardElement.innerHTML = "";
+            sevensHandElement.innerHTML = "";
+            sevensPlayersElement.innerHTML = "";
+          }
+
+          sevensStartButton.addEventListener("click", startSevensGame);
+          sevensResetButton.addEventListener("click", resetSevensGame);
+          sevensPassButton.addEventListener("click", passSevensTurn);
+          sevensNextButton.addEventListener("click", cpuPlaySevensTurn);
+        </script>""",
 )
 MEMORY_HTML = render_page(
     title="神経衰弱 | Ocean Game Hub",

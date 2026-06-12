@@ -3919,6 +3919,7 @@ SEVENS_HTML = render_page(
           let sevensBoard = {};
           let sevensCurrentPlayerIndex = 0;
           let sevensFinishedOrder = [];
+          let sevensCpuTimer = null;
           let sevensIsGameOver = false;
 
           function createSevensDeck() {
@@ -4064,10 +4065,7 @@ SEVENS_HTML = render_page(
               : `${player.name} の番です。出せるカードがないためパスします`;
             sevensStatusElement.textContent = message ? `${message} ${turnMessage}` : turnMessage;
             renderSevens();
-
-            if (sevensCurrentPlayerIndex !== 0 && playableCards.length === 0) {
-              setTimeout(() => passSevensTurn(), 500);
-            }
+            scheduleSevensCpuTurn();
           }
 
           function playSevensCard(playerIndex, handIndex) {
@@ -4126,6 +4124,17 @@ SEVENS_HTML = render_page(
             playSevensCard(sevensCurrentPlayerIndex, player.hand.indexOf(selectedCard));
           }
 
+          function scheduleSevensCpuTurn() {
+            if (sevensCpuTimer || sevensIsGameOver || sevensCurrentPlayerIndex === 0) {
+              return;
+            }
+
+            sevensCpuTimer = setTimeout(() => {
+              sevensCpuTimer = null;
+              cpuPlaySevensTurn();
+            }, 750);
+          }
+
           function renderSevensBoard() {
             sevensBoardElement.innerHTML = sevensSuits.map((suit) => {
               const suitBoard = sevensBoard[suit];
@@ -4178,7 +4187,7 @@ SEVENS_HTML = render_page(
             renderSevensHand();
             renderSevensPlayers();
             sevensPassButton.hidden = sevensIsGameOver || sevensCurrentPlayerIndex !== 0;
-            sevensNextButton.hidden = sevensIsGameOver || sevensCurrentPlayerIndex === 0;
+            sevensNextButton.hidden = true;
           }
 
           function startSevensGame() {
@@ -4187,6 +4196,7 @@ SEVENS_HTML = render_page(
             sevensBoard = createSevensBoard();
             sevensCurrentPlayerIndex = 0;
             sevensFinishedOrder = [];
+            sevensCpuTimer = null;
             sevensIsGameOver = false;
 
             dealSevensCards(shuffleSevensCards(createSevensDeck()));
@@ -4195,14 +4205,18 @@ SEVENS_HTML = render_page(
             sevensTableElement.hidden = false;
             sevensStatusElement.textContent = "あなたの番です。出せるカードをクリックしてください";
             renderSevens();
-            checkSevensGameOver();
+            if (!checkSevensGameOver()) {
+              scheduleSevensCpuTurn();
+            }
           }
 
           function resetSevensGame() {
+            clearTimeout(sevensCpuTimer);
             sevensPlayers = [];
             sevensBoard = {};
             sevensCurrentPlayerIndex = 0;
             sevensFinishedOrder = [];
+            sevensCpuTimer = null;
             sevensIsGameOver = false;
             sevensSetupElement.hidden = false;
             sevensTableElement.hidden = true;

@@ -871,6 +871,123 @@ STYLE = """
       line-height: 1.7;
     }
 
+    .memory-setup {
+      display: grid;
+      gap: 18px;
+      max-width: 420px;
+      margin: 30px auto 0;
+      text-align: left;
+    }
+
+    .memory-setup label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .memory-setup select {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 18px;
+      background: rgba(0, 18, 40, 0.72);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .memory-table {
+      display: grid;
+      gap: 18px;
+      width: 760px;
+      max-width: calc(100vw - 420px);
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .memory-table[hidden] {
+      display: none;
+    }
+
+    .memory-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .memory-board {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(80px, 1fr));
+      gap: 12px;
+      padding: 16px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .memory-card {
+      display: grid;
+      place-items: center;
+      height: 86px;
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(28, 150, 205, 0.88);
+      border: 1px solid rgba(190, 245, 255, 0.82);
+      border-radius: 14px;
+    }
+
+    .memory-card:hover {
+      transform: translateY(-3px);
+      background: rgba(45, 170, 220, 0.95);
+    }
+
+    .memory-card.is-open,
+    .memory-card.is-matched {
+      cursor: default;
+      background: rgba(4, 32, 64, 0.95);
+    }
+
+    .memory-card.is-matched {
+      color: #9feaff;
+      opacity: 0.66;
+    }
+
+    .memory-players {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .memory-player {
+      min-width: 0;
+      padding: 14px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 16px;
+    }
+
+    .memory-player.is-active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
+    }
+
+    .memory-player h3 {
+      margin: 0 0 8px;
+      color: #9feaff;
+      font-size: 18px;
+    }
+
+    .memory-player p {
+      margin: 0;
+      color: #ffffff;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -4236,7 +4353,272 @@ MEMORY_HTML = render_page(
     title="神経衰弱 | Ocean Game Hub",
     heading="神経衰弱",
     active_page="trump",
-    message="このページは後日作成します",
+    body_html="""<p>プレイヤー人数を選んで神経衰弱を始めましょう</p>
+        <section class="memory-setup" id="memory-setup">
+          <label>
+            プレイヤー人数
+            <select id="memory-player-count">
+              <option value="2">2人</option>
+              <option value="3">3人</option>
+              <option value="4" selected>4人</option>
+            </select>
+          </label>
+          <button class="primary-button" id="memory-start" type="button">ゲーム開始</button>
+        </section>
+        <section class="memory-table" id="memory-table" hidden>
+          <div class="info-card">
+            <h3>状態</h3>
+            <p id="memory-status">人数を選んでゲームを開始してください</p>
+          </div>
+          <div class="memory-actions">
+            <button class="primary-button" id="memory-reset" type="button">人数設定に戻る</button>
+            <a class="primary-button" href="/trump">トランプ選択に戻る</a>
+          </div>
+          <div class="memory-board" id="memory-board"></div>
+          <div class="memory-players" id="memory-players"></div>
+        </section>
+        <script>
+          const memorySetupElement = document.getElementById("memory-setup");
+          const memoryTableElement = document.getElementById("memory-table");
+          const memoryPlayerCountSelect = document.getElementById("memory-player-count");
+          const memoryStartButton = document.getElementById("memory-start");
+          const memoryResetButton = document.getElementById("memory-reset");
+          const memoryStatusElement = document.getElementById("memory-status");
+          const memoryBoardElement = document.getElementById("memory-board");
+          const memoryPlayersElement = document.getElementById("memory-players");
+
+          const memoryPairs = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+          let memoryPlayers = [];
+          let memoryCards = [];
+          let memoryCurrentPlayerIndex = 0;
+          let memorySelectedIndexes = [];
+          let memoryIsLocked = false;
+          let memoryIsGameOver = false;
+          let memoryCpuTimer = null;
+
+          function createMemoryPlayers(playerCount) {
+            return Array.from({ length: playerCount }, (_, index) => ({
+              name: index === 0 ? "あなた" : `CPU ${index}`,
+              score: 0,
+            }));
+          }
+
+          function shuffleMemoryCards(cards) {
+            for (let index = cards.length - 1; index > 0; index -= 1) {
+              const swapIndex = Math.floor(Math.random() * (index + 1));
+              [cards[index], cards[swapIndex]] = [cards[swapIndex], cards[index]];
+            }
+            return cards;
+          }
+
+          function createMemoryCards() {
+            return shuffleMemoryCards(
+              memoryPairs.flatMap((rank) => [
+                { rank, isOpen: false, isMatched: false },
+                { rank, isOpen: false, isMatched: false },
+              ])
+            );
+          }
+
+          function getCurrentMemoryPlayer() {
+            return memoryPlayers[memoryCurrentPlayerIndex];
+          }
+
+          function getRemainingMemoryIndexes() {
+            return memoryCards
+              .map((card, index) => ({ card, index }))
+              .filter(({ card }) => !card.isMatched && !card.isOpen)
+              .map(({ index }) => index);
+          }
+
+          function advanceMemoryTurn(message = "") {
+            if (checkMemoryGameOver()) {
+              return;
+            }
+
+            memoryCurrentPlayerIndex = (memoryCurrentPlayerIndex + 1) % memoryPlayers.length;
+            const currentPlayer = getCurrentMemoryPlayer();
+            memoryStatusElement.textContent = message
+              ? `${message} ${currentPlayer.name} の番です`
+              : `${currentPlayer.name} の番です`;
+            renderMemory();
+            scheduleMemoryCpuTurn();
+          }
+
+          function checkMemoryGameOver() {
+            if (!memoryCards.length || memoryCards.some((card) => !card.isMatched)) {
+              return false;
+            }
+
+            memoryIsGameOver = true;
+            clearTimeout(memoryCpuTimer);
+            memoryCpuTimer = null;
+            const highScore = Math.max(...memoryPlayers.map((player) => player.score));
+            const winners = memoryPlayers
+              .filter((player) => player.score === highScore)
+              .map((player) => player.name)
+              .join("、");
+            memoryStatusElement.textContent = `ゲーム終了。勝者: ${winners}（${highScore}組）`;
+            renderMemory();
+            return true;
+          }
+
+          function resolveMemorySelection() {
+            const [firstIndex, secondIndex] = memorySelectedIndexes;
+            const firstCard = memoryCards[firstIndex];
+            const secondCard = memoryCards[secondIndex];
+            const currentPlayer = getCurrentMemoryPlayer();
+
+            if (firstCard.rank === secondCard.rank) {
+              firstCard.isMatched = true;
+              secondCard.isMatched = true;
+              currentPlayer.score += 1;
+              memorySelectedIndexes = [];
+              memoryIsLocked = false;
+              memoryStatusElement.textContent = `${currentPlayer.name} が ${firstCard.rank} のペアを取りました。もう一度めくれます`;
+              renderMemory();
+              if (!checkMemoryGameOver()) {
+                scheduleMemoryCpuTurn();
+              }
+              return;
+            }
+
+            setTimeout(() => {
+              firstCard.isOpen = false;
+              secondCard.isOpen = false;
+              memorySelectedIndexes = [];
+              memoryIsLocked = false;
+              advanceMemoryTurn(`${currentPlayer.name} はペアを作れませんでした。`);
+            }, 900);
+          }
+
+          function flipMemoryCard(cardIndex) {
+            if (memoryIsLocked || memoryIsGameOver || memorySelectedIndexes.includes(cardIndex)) {
+              return;
+            }
+
+            const card = memoryCards[cardIndex];
+            if (!card || card.isOpen || card.isMatched) {
+              return;
+            }
+
+            card.isOpen = true;
+            memorySelectedIndexes.push(cardIndex);
+            renderMemory();
+
+            if (memorySelectedIndexes.length === 2) {
+              memoryIsLocked = true;
+              resolveMemorySelection();
+            }
+          }
+
+          function cpuMemoryTurn() {
+            if (memoryIsGameOver || memoryCurrentPlayerIndex === 0 || memoryIsLocked) {
+              return;
+            }
+
+            const availableIndexes = getRemainingMemoryIndexes();
+            if (availableIndexes.length < 2) {
+              checkMemoryGameOver();
+              return;
+            }
+
+            const firstIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            flipMemoryCard(firstIndex);
+            setTimeout(() => {
+              const nextIndexes = getRemainingMemoryIndexes();
+              if (nextIndexes.length === 0) {
+                checkMemoryGameOver();
+                return;
+              }
+              const secondIndex = nextIndexes[Math.floor(Math.random() * nextIndexes.length)];
+              flipMemoryCard(secondIndex);
+            }, 650);
+          }
+
+          function scheduleMemoryCpuTurn() {
+            if (memoryCpuTimer || memoryIsGameOver || memoryCurrentPlayerIndex === 0 || memoryIsLocked) {
+              return;
+            }
+
+            memoryCpuTimer = setTimeout(() => {
+              memoryCpuTimer = null;
+              cpuMemoryTurn();
+            }, 800);
+          }
+
+          function renderMemoryBoard() {
+            memoryBoardElement.innerHTML = memoryCards.map((card, cardIndex) => {
+              const visible = card.isOpen || card.isMatched || memoryIsGameOver;
+              const classes = [
+                "memory-card",
+                card.isOpen ? "is-open" : "",
+                card.isMatched ? "is-matched" : "",
+              ].filter(Boolean).join(" ");
+              return `<button class="${classes}" type="button" data-card-index="${cardIndex}">${visible ? card.rank : "?"}</button>`;
+            }).join("");
+
+            memoryBoardElement.querySelectorAll("[data-card-index]").forEach((button) => {
+              button.addEventListener("click", () => {
+                if (memoryCurrentPlayerIndex !== 0) {
+                  return;
+                }
+                flipMemoryCard(Number(button.dataset.cardIndex));
+              });
+            });
+          }
+
+          function renderMemoryPlayers() {
+            memoryPlayersElement.innerHTML = memoryPlayers.map((player, playerIndex) => {
+              const activeClass = playerIndex === memoryCurrentPlayerIndex && !memoryIsGameOver ? " is-active" : "";
+              return `<section class="memory-player${activeClass}">
+                <h3>${player.name}</h3>
+                <p>獲得: ${player.score}組</p>
+              </section>`;
+            }).join("");
+          }
+
+          function renderMemory() {
+            renderMemoryBoard();
+            renderMemoryPlayers();
+          }
+
+          function startMemoryGame() {
+            const playerCount = Number(memoryPlayerCountSelect.value);
+            memoryPlayers = createMemoryPlayers(playerCount);
+            memoryCards = createMemoryCards();
+            memoryCurrentPlayerIndex = 0;
+            memorySelectedIndexes = [];
+            memoryIsLocked = false;
+            memoryIsGameOver = false;
+            clearTimeout(memoryCpuTimer);
+            memoryCpuTimer = null;
+
+            memorySetupElement.hidden = true;
+            memoryTableElement.hidden = false;
+            memoryStatusElement.textContent = "あなたの番です。カードを2枚めくってください";
+            renderMemory();
+          }
+
+          function resetMemoryGame() {
+            clearTimeout(memoryCpuTimer);
+            memoryPlayers = [];
+            memoryCards = [];
+            memoryCurrentPlayerIndex = 0;
+            memorySelectedIndexes = [];
+            memoryIsLocked = false;
+            memoryIsGameOver = false;
+            memoryCpuTimer = null;
+            memorySetupElement.hidden = false;
+            memoryTableElement.hidden = true;
+            memoryStatusElement.textContent = "人数を選んでゲームを開始してください";
+            memoryBoardElement.innerHTML = "";
+            memoryPlayersElement.innerHTML = "";
+          }
+
+          memoryStartButton.addEventListener("click", startMemoryGame);
+          memoryResetButton.addEventListener("click", resetMemoryGame);
+        </script>""",
 )
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",

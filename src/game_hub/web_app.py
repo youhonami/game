@@ -4363,6 +4363,14 @@ MEMORY_HTML = render_page(
               <option value="4" selected>4人</option>
             </select>
           </label>
+          <label>
+            CPUの強さ
+            <select id="memory-cpu-level">
+              <option value="easy">やさしい</option>
+              <option value="normal" selected>ふつう</option>
+              <option value="hard">つよい</option>
+            </select>
+          </label>
           <button class="primary-button" id="memory-start" type="button">ゲーム開始</button>
         </section>
         <section class="memory-table" id="memory-table" hidden>
@@ -4381,6 +4389,7 @@ MEMORY_HTML = render_page(
           const memorySetupElement = document.getElementById("memory-setup");
           const memoryTableElement = document.getElementById("memory-table");
           const memoryPlayerCountSelect = document.getElementById("memory-player-count");
+          const memoryCpuLevelSelect = document.getElementById("memory-cpu-level");
           const memoryStartButton = document.getElementById("memory-start");
           const memoryResetButton = document.getElementById("memory-reset");
           const memoryStatusElement = document.getElementById("memory-status");
@@ -4395,6 +4404,8 @@ MEMORY_HTML = render_page(
           let memoryIsLocked = false;
           let memoryIsGameOver = false;
           let memoryCpuTimer = null;
+          let memoryCpuLevel = "normal";
+          let memoryKnownCards = new Map();
 
           function createMemoryPlayers(playerCount) {
             return Array.from({ length: playerCount }, (_, index) => ({
@@ -4429,6 +4440,66 @@ MEMORY_HTML = render_page(
               .map((card, index) => ({ card, index }))
               .filter(({ card }) => !card.isMatched && !card.isOpen)
               .map(({ index }) => index);
+          }
+
+          function rememberMemoryCard(cardIndex) {
+            const card = memoryCards[cardIndex];
+            if (!card) {
+              return;
+            }
+            memoryKnownCards.set(cardIndex, card.rank);
+          }
+
+          function getKnownMemoryPair() {
+            const knownByRank = new Map();
+            memoryKnownCards.forEach((rank, cardIndex) => {
+              const card = memoryCards[cardIndex];
+              if (!card || card.isMatched || card.isOpen) {
+                return;
+              }
+
+              const indexes = knownByRank.get(rank) || [];
+              indexes.push(cardIndex);
+              knownByRank.set(rank, indexes);
+            });
+
+            for (const indexes of knownByRank.values()) {
+              if (indexes.length >= 2) {
+                return indexes.slice(0, 2);
+              }
+            }
+            return null;
+          }
+
+          function shouldUseMemory(chance) {
+            if (memoryCpuLevel === "hard") {
+              return true;
+            }
+            if (memoryCpuLevel === "normal") {
+              return Math.random() < chance;
+            }
+            return false;
+          }
+
+          function chooseCpuFirstMemoryIndex(availableIndexes) {
+            const knownPair = getKnownMemoryPair();
+            if (knownPair && shouldUseMemory(0.6)) {
+              return knownPair[0];
+            }
+            return availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+          }
+
+          function chooseCpuSecondMemoryIndex(firstIndex, availableIndexes) {
+            const firstRank = memoryCards[firstIndex].rank;
+            const knownMatchIndex = availableIndexes.find((cardIndex) => {
+              const card = memoryCards[cardIndex];
+              return memoryKnownCards.get(cardIndex) === firstRank && card && !card.isMatched && !card.isOpen;
+            });
+
+            if (knownMatchIndex !== undefined && shouldUseMemory(0.75)) {
+              return knownMatchIndex;
+            }
+            return availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
           }
 
           function advanceMemoryTurn(message = "") {
@@ -4503,6 +4574,7 @@ MEMORY_HTML = render_page(
             }
 
             card.isOpen = true;
+            rememberMemoryCard(cardIndex);
             memorySelectedIndexes.push(cardIndex);
             renderMemory();
 
@@ -4523,7 +4595,7 @@ MEMORY_HTML = render_page(
               return;
             }
 
-            const firstIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            const firstIndex = chooseCpuFirstMemoryIndex(availableIndexes);
             flipMemoryCard(firstIndex);
             setTimeout(() => {
               const nextIndexes = getRemainingMemoryIndexes();
@@ -4531,7 +4603,7 @@ MEMORY_HTML = render_page(
                 checkMemoryGameOver();
                 return;
               }
-              const secondIndex = nextIndexes[Math.floor(Math.random() * nextIndexes.length)];
+              const secondIndex = chooseCpuSecondMemoryIndex(firstIndex, nextIndexes);
               flipMemoryCard(secondIndex);
             }, 650);
           }
@@ -4585,6 +4657,7 @@ MEMORY_HTML = render_page(
 
           function startMemoryGame() {
             const playerCount = Number(memoryPlayerCountSelect.value);
+            memoryCpuLevel = memoryCpuLevelSelect.value;
             memoryPlayers = createMemoryPlayers(playerCount);
             memoryCards = createMemoryCards();
             memoryCurrentPlayerIndex = 0;
@@ -4593,10 +4666,12 @@ MEMORY_HTML = render_page(
             memoryIsGameOver = false;
             clearTimeout(memoryCpuTimer);
             memoryCpuTimer = null;
+            memoryKnownCards = new Map();
 
             memorySetupElement.hidden = true;
             memoryTableElement.hidden = false;
-            memoryStatusElement.textContent = "あなたの番です。カードを2枚めくってください";
+            const levelLabel = memoryCpuLevelSelect.options[memoryCpuLevelSelect.selectedIndex].textContent;
+            memoryStatusElement.textContent = `あなたの番です。カードを2枚めくってください（CPU: ${levelLabel}）`;
             renderMemory();
           }
 
@@ -4609,6 +4684,8 @@ MEMORY_HTML = render_page(
             memoryIsLocked = false;
             memoryIsGameOver = false;
             memoryCpuTimer = null;
+            memoryCpuLevel = "normal";
+            memoryKnownCards = new Map();
             memorySetupElement.hidden = false;
             memoryTableElement.hidden = true;
             memoryStatusElement.textContent = "人数を選んでゲームを開始してください";

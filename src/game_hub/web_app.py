@@ -3716,6 +3716,7 @@ OLD_MAID_HTML = render_page(
           let players = [];
           let currentPlayerIndex = 0;
           let finishedOrder = [];
+          let cpuTimer = null;
           let isGameOver = false;
 
           function createDeck() {
@@ -3870,8 +3871,9 @@ OLD_MAID_HTML = render_page(
             const opponent = players[opponentIndex];
             const turnMessage = `${currentPlayer.name} の番です。${opponent.name} からカードを引きます`;
             statusElement.textContent = extraMessage ? `${extraMessage} ${turnMessage}` : turnMessage;
-            nextButton.hidden = currentPlayerIndex === 0 || isGameOver;
+            nextButton.hidden = true;
             render();
+            scheduleCpuDraw();
           }
 
           function drawCard(playerIndex, opponentIndex, cardIndex) {
@@ -3898,6 +3900,17 @@ OLD_MAID_HTML = render_page(
             const opponent = players[opponentIndex];
             const cardIndex = Math.floor(Math.random() * opponent.hand.length);
             drawCard(currentPlayerIndex, opponentIndex, cardIndex);
+          }
+
+          function scheduleCpuDraw() {
+            if (cpuTimer || isGameOver || currentPlayerIndex === 0) {
+              return;
+            }
+
+            cpuTimer = setTimeout(() => {
+              cpuTimer = null;
+              cpuDraw();
+            }, 750);
           }
 
           function renderPlayer(player, playerIndex) {
@@ -3948,6 +3961,8 @@ OLD_MAID_HTML = render_page(
             players = createPlayers(playerCount);
             currentPlayerIndex = 0;
             finishedOrder = [];
+            clearTimeout(cpuTimer);
+            cpuTimer = null;
             isGameOver = false;
 
             dealCards(shuffle(createDeck()));
@@ -3959,13 +3974,17 @@ OLD_MAID_HTML = render_page(
             nextButton.hidden = true;
             statusElement.textContent = "あなたの番です。右隣の相手からカードを1枚選んでください";
             render();
-            checkGameOver();
+            if (!checkGameOver()) {
+              scheduleCpuDraw();
+            }
           }
 
           function resetGame() {
+            clearTimeout(cpuTimer);
             players = [];
             currentPlayerIndex = 0;
             finishedOrder = [];
+            cpuTimer = null;
             isGameOver = false;
             setupElement.hidden = false;
             tableElement.hidden = true;

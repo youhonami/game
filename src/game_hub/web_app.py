@@ -4390,6 +4390,13 @@ MEMORY_HTML = render_page(
               <option value="hard">つよい</option>
             </select>
           </label>
+          <label>
+            揃える枚数
+            <select id="memory-match-mode">
+              <option value="2" selected>2枚ペア</option>
+              <option value="4">4枚セット</option>
+            </select>
+          </label>
           <button class="primary-button" id="memory-start" type="button">ゲーム開始</button>
         </section>
         <section class="memory-table" id="memory-table" hidden>
@@ -4409,6 +4416,7 @@ MEMORY_HTML = render_page(
           const memoryTableElement = document.getElementById("memory-table");
           const memoryPlayerCountSelect = document.getElementById("memory-player-count");
           const memoryCpuLevelSelect = document.getElementById("memory-cpu-level");
+          const memoryMatchModeSelect = document.getElementById("memory-match-mode");
           const memoryStartButton = document.getElementById("memory-start");
           const memoryResetButton = document.getElementById("memory-reset");
           const memoryStatusElement = document.getElementById("memory-status");
@@ -4424,6 +4432,7 @@ MEMORY_HTML = render_page(
           let memoryIsGameOver = false;
           let memoryCpuTimer = null;
           let memoryCpuLevel = "normal";
+          let memoryGroupSize = 2;
           let memoryKnownCards = new Map();
 
           function createMemoryPlayers(playerCount) {
@@ -4442,11 +4451,15 @@ MEMORY_HTML = render_page(
           }
 
           function createMemoryCards() {
+            const activeRanks = memoryGroupSize === 4 ? memoryPairs.slice(0, 5) : memoryPairs;
             return shuffleMemoryCards(
-              memoryPairs.flatMap((rank) => [
-                { rank, isOpen: false, isMatched: false },
-                { rank, isOpen: false, isMatched: false },
-              ])
+              activeRanks.flatMap((rank) =>
+                Array.from({ length: memoryGroupSize }, () => ({
+                  rank,
+                  isOpen: false,
+                  isMatched: false,
+                }))
+              )
             );
           }
 
@@ -4469,7 +4482,7 @@ MEMORY_HTML = render_page(
             memoryKnownCards.set(cardIndex, card.rank);
           }
 
-          function getKnownMemoryPair() {
+          function getKnownMemorySet(requiredCount = memoryGroupSize) {
             const knownByRank = new Map();
             memoryKnownCards.forEach((rank, cardIndex) => {
               const card = memoryCards[cardIndex];
@@ -4483,8 +4496,8 @@ MEMORY_HTML = render_page(
             });
 
             for (const indexes of knownByRank.values()) {
-              if (indexes.length >= 2) {
-                return indexes.slice(0, 2);
+              if (indexes.length >= requiredCount) {
+                return indexes.slice(0, requiredCount);
               }
             }
             return null;
@@ -4501,18 +4514,25 @@ MEMORY_HTML = render_page(
           }
 
           function chooseCpuFirstMemoryIndex(availableIndexes) {
-            const knownPair = getKnownMemoryPair();
-            if (knownPair && shouldUseMemory(0.6)) {
-              return knownPair[0];
+            const knownSet = getKnownMemorySet();
+            if (knownSet && shouldUseMemory(0.6)) {
+              return knownSet[0];
             }
             return availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
           }
 
-          function chooseCpuSecondMemoryIndex(firstIndex, availableIndexes) {
+          function chooseCpuNextMemoryIndex(selectedIndexes, availableIndexes) {
+            const firstIndex = selectedIndexes[0];
             const firstRank = memoryCards[firstIndex].rank;
             const knownMatchIndex = availableIndexes.find((cardIndex) => {
               const card = memoryCards[cardIndex];
-              return memoryKnownCards.get(cardIndex) === firstRank && card && !card.isMatched && !card.isOpen;
+              return (
+                memoryKnownCards.get(cardIndex) === firstRank
+                && card
+                && !card.isMatched
+                && !card.isOpen
+                && !selectedIndexes.includes(cardIndex)
+              );
             });
 
             if (knownMatchIndex !== undefined && shouldUseMemory(0.75)) {
@@ -4554,18 +4574,18 @@ MEMORY_HTML = render_page(
           }
 
           function resolveMemorySelection() {
-            const [firstIndex, secondIndex] = memorySelectedIndexes;
-            const firstCard = memoryCards[firstIndex];
-            const secondCard = memoryCards[secondIndex];
+            const selectedCards = memorySelectedIndexes.map((cardIndex) => memoryCards[cardIndex]);
+            const firstCard = selectedCards[0];
             const currentPlayer = getCurrentMemoryPlayer();
 
-            if (firstCard.rank === secondCard.rank) {
-              firstCard.isMatched = true;
-              secondCard.isMatched = true;
+            if (selectedCards.every((card) => card.rank === firstCard.rank)) {
+              selectedCards.forEach((card) => {
+                card.isMatched = true;
+              });
               currentPlayer.score += 1;
               memorySelectedIndexes = [];
               memoryIsLocked = false;
-              memoryStatusElement.textContent = `${currentPlayer.name} が ${firstCard.rank} のペアを取りました。もう一度めくれます`;
+              memoryStatusElement.textContent = `${currentPlayer.name} が ${firstCard.rank} を${memoryGroupSize}枚揃えました。もう一度めくれます`;
               renderMemory();
               if (!checkMemoryGameOver()) {
                 scheduleMemoryCpuTurn();
@@ -4574,12 +4594,13 @@ MEMORY_HTML = render_page(
             }
 
             setTimeout(() => {
-              firstCard.isOpen = false;
-              secondCard.isOpen = false;
+              selectedCards.forEach((card) => {
+                card.isOpen = false;
+              });
               memorySelectedIndexes = [];
               memoryIsLocked = false;
-              advanceMemoryTurn(`${currentPlayer.name} はペアを作れませんでした。`);
-            }, 900);
+              advanceMemoryTurn(`${currentPlayer.name} は揃えられませんでした。`);
+            }, 1000);
           }
 
           function flipMemoryCard(cardIndex) {
@@ -4597,10 +4618,22 @@ MEMORY_HTML = render_page(
             memorySelectedIndexes.push(cardIndex);
             renderMemory();
 
-            if (memorySelectedIndexes.length === 2) {
+            if (memorySelectedIndexes.length === memoryGroupSize) {
               memoryIsLocked = true;
               resolveMemorySelection();
             }
+          }
+
+          function flipMemoryIndexesSequentially(indexes, delay = 650) {
+            const [firstIndex, ...restIndexes] = indexes;
+            flipMemoryCard(firstIndex);
+            if (restIndexes.length === 0) {
+              return;
+            }
+
+            setTimeout(() => {
+              flipMemoryIndexesSequentially(restIndexes, delay);
+            }, delay);
           }
 
           function cpuMemoryTurn() {
@@ -4609,22 +4642,36 @@ MEMORY_HTML = render_page(
             }
 
             const availableIndexes = getRemainingMemoryIndexes();
-            if (availableIndexes.length < 2) {
+            if (availableIndexes.length < memoryGroupSize) {
               checkMemoryGameOver();
               return;
             }
 
-            const firstIndex = chooseCpuFirstMemoryIndex(availableIndexes);
-            flipMemoryCard(firstIndex);
-            setTimeout(() => {
+            const knownSet = getKnownMemorySet();
+            if (knownSet && shouldUseMemory(0.6)) {
+              flipMemoryIndexesSequentially(knownSet);
+              return;
+            }
+
+            const selectedIndexes = [chooseCpuFirstMemoryIndex(availableIndexes)];
+            flipMemoryCard(selectedIndexes[0]);
+
+            function chooseNextCard() {
               const nextIndexes = getRemainingMemoryIndexes();
-              if (nextIndexes.length === 0) {
+              if (nextIndexes.length === 0 || selectedIndexes.length >= memoryGroupSize) {
                 checkMemoryGameOver();
                 return;
               }
-              const secondIndex = chooseCpuSecondMemoryIndex(firstIndex, nextIndexes);
-              flipMemoryCard(secondIndex);
-            }, 650);
+
+              const nextIndex = chooseCpuNextMemoryIndex(selectedIndexes, nextIndexes);
+              selectedIndexes.push(nextIndex);
+              flipMemoryCard(nextIndex);
+              if (selectedIndexes.length < memoryGroupSize) {
+                setTimeout(chooseNextCard, 650);
+              }
+            }
+
+            setTimeout(chooseNextCard, 650);
           }
 
           function scheduleMemoryCpuTurn() {
@@ -4677,6 +4724,7 @@ MEMORY_HTML = render_page(
           function startMemoryGame() {
             const playerCount = Number(memoryPlayerCountSelect.value);
             memoryCpuLevel = memoryCpuLevelSelect.value;
+            memoryGroupSize = Number(memoryMatchModeSelect.value);
             memoryPlayers = createMemoryPlayers(playerCount);
             memoryCards = createMemoryCards();
             memoryCurrentPlayerIndex = 0;
@@ -4690,7 +4738,8 @@ MEMORY_HTML = render_page(
             memorySetupElement.hidden = true;
             memoryTableElement.hidden = false;
             const levelLabel = memoryCpuLevelSelect.options[memoryCpuLevelSelect.selectedIndex].textContent;
-            memoryStatusElement.textContent = `あなたの番です。カードを2枚めくってください（CPU: ${levelLabel}）`;
+            const modeLabel = memoryMatchModeSelect.options[memoryMatchModeSelect.selectedIndex].textContent;
+            memoryStatusElement.textContent = `あなたの番です。カードを${memoryGroupSize}枚めくってください（CPU: ${levelLabel} / ${modeLabel}）`;
             renderMemory();
           }
 
@@ -4704,6 +4753,7 @@ MEMORY_HTML = render_page(
             memoryIsGameOver = false;
             memoryCpuTimer = null;
             memoryCpuLevel = "normal";
+            memoryGroupSize = 2;
             memoryKnownCards = new Map();
             memorySetupElement.hidden = false;
             memoryTableElement.hidden = true;

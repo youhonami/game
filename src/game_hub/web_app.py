@@ -1086,6 +1086,7 @@ def render_page(
     breakout_class = "active" if active_page == "breakout" else ""
     ludo_class = "active" if active_page == "ludo" else ""
     trump_class = "active" if active_page == "trump" else ""
+    puzzle_class = "active" if active_page == "puzzle" else ""
     ranking_class = "active" if active_page == "ranking" else ""
     contact_class = "active" if active_page == "contact" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
@@ -1113,6 +1114,7 @@ def render_page(
         <a class="{breakout_class}" href="/breakout">ブロック崩し</a>
         <a class="{ludo_class}" href="/ludo">ルドー</a>
         <a class="{trump_class}" href="/trump">トランプ</a>
+        <a class="{puzzle_class}" href="/puzzle">パズル</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
         <a class="{contact_class}" href="/contact">お問い合わせ</a>
       </nav>
@@ -4766,6 +4768,12 @@ MEMORY_HTML = render_page(
           memoryResetButton.addEventListener("click", resetMemoryGame);
         </script>""",
 )
+PUZZLE_HTML = render_page(
+    title="パズル | Ocean Game Hub",
+    heading="パズル",
+    active_page="puzzle",
+    message="このページは後日作成します",
+)
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",
     heading="ランキング",
@@ -5277,6 +5285,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/trump/memory":
             self._send_html(MEMORY_HTML)
+            return
+
+        if path == "/puzzle":
+            self._send_html(PUZZLE_HTML)
             return
 
         if path in {"/ranking", "/score"}:

@@ -988,6 +988,61 @@ STYLE = """
       line-height: 1.7;
     }
 
+    .fifteen-puzzle-table {
+      display: grid;
+      gap: 18px;
+      width: 520px;
+      max-width: 100%;
+      margin: 30px auto 0;
+      text-align: left;
+    }
+
+    .fifteen-puzzle-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 16px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .fifteen-tile {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      color: #ffffff;
+      font-size: 30px;
+      font-weight: 800;
+      cursor: pointer;
+      background: rgba(28, 150, 205, 0.9);
+      border: 1px solid rgba(190, 245, 255, 0.9);
+      border-radius: 14px;
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+
+    .fifteen-tile:hover {
+      transform: translateY(-3px);
+      background: rgba(45, 170, 220, 0.95);
+    }
+
+    .fifteen-tile.is-empty {
+      cursor: default;
+      background: rgba(0, 8, 20, 0.42);
+      border-style: dashed;
+      opacity: 0.72;
+    }
+
+    .fifteen-tile.is-empty:hover {
+      transform: none;
+    }
+
+    .fifteen-puzzle-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -4769,10 +4824,144 @@ MEMORY_HTML = render_page(
         </script>""",
 )
 PUZZLE_HTML = render_page(
-    title="パズル | Ocean Game Hub",
-    heading="パズル",
+    title="15パズル | Ocean Game Hub",
+    heading="15パズル",
     active_page="puzzle",
-    message="このページは後日作成します",
+    body_html="""<p>数字を並べ替えて、1から15まで順番にそろえましょう</p>
+        <section class="fifteen-puzzle-table">
+          <div class="info-card">
+            <h3>状態</h3>
+            <p id="fifteen-status">シャッフルして開始してください</p>
+          </div>
+          <div class="info-card">
+            <h3>移動回数</h3>
+            <p id="fifteen-moves">0</p>
+          </div>
+          <div class="fifteen-puzzle-actions">
+            <button class="primary-button" id="fifteen-shuffle" type="button">シャッフル</button>
+            <button class="primary-button" id="fifteen-reset" type="button">リセット</button>
+          </div>
+          <div class="fifteen-puzzle-board" id="fifteen-board"></div>
+          <div class="info-card">
+            <h3>遊び方</h3>
+            <p>空きマスの上下左右にある数字をクリックすると、その数字が空きマスへ移動します。</p>
+          </div>
+        </section>
+        <script>
+          const fifteenBoardElement = document.getElementById("fifteen-board");
+          const fifteenStatusElement = document.getElementById("fifteen-status");
+          const fifteenMovesElement = document.getElementById("fifteen-moves");
+          const fifteenShuffleButton = document.getElementById("fifteen-shuffle");
+          const fifteenResetButton = document.getElementById("fifteen-reset");
+
+          const solvedFifteenTiles = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0];
+          let fifteenTiles = [...solvedFifteenTiles];
+          let fifteenMoves = 0;
+          let fifteenIsSolved = true;
+
+          function getFifteenRow(index) {
+            return Math.floor(index / 4);
+          }
+
+          function getFifteenColumn(index) {
+            return index % 4;
+          }
+
+          function canMoveFifteenTile(tileIndex) {
+            const emptyIndex = fifteenTiles.indexOf(0);
+            return (
+              Math.abs(getFifteenRow(tileIndex) - getFifteenRow(emptyIndex))
+              + Math.abs(getFifteenColumn(tileIndex) - getFifteenColumn(emptyIndex))
+            ) === 1;
+          }
+
+          function isFifteenSolved() {
+            return fifteenTiles.every((tile, index) => tile === solvedFifteenTiles[index]);
+          }
+
+          function updateFifteenStatus(message) {
+            fifteenMovesElement.textContent = String(fifteenMoves);
+            fifteenStatusElement.textContent = message;
+          }
+
+          function renderFifteenBoard() {
+            fifteenBoardElement.innerHTML = fifteenTiles
+              .map((tile, index) => {
+                if (tile === 0) {
+                  return '<button class="fifteen-tile is-empty" type="button" aria-label="空きマス" disabled></button>';
+                }
+                return `<button class="fifteen-tile" type="button" data-tile-index="${index}">${tile}</button>`;
+              })
+              .join("");
+
+            fifteenBoardElement.querySelectorAll("[data-tile-index]").forEach((button) => {
+              button.addEventListener("click", () => {
+                moveFifteenTile(Number(button.dataset.tileIndex), true);
+              });
+            });
+          }
+
+          function moveFifteenTile(tileIndex, countMove) {
+            if (!canMoveFifteenTile(tileIndex)) {
+              return false;
+            }
+
+            const emptyIndex = fifteenTiles.indexOf(0);
+            [fifteenTiles[tileIndex], fifteenTiles[emptyIndex]] = [fifteenTiles[emptyIndex], fifteenTiles[tileIndex]];
+
+            if (countMove) {
+              fifteenMoves += 1;
+            }
+
+            fifteenIsSolved = isFifteenSolved();
+            renderFifteenBoard();
+            if (fifteenIsSolved) {
+              updateFifteenStatus(`完成です！ ${fifteenMoves} 回でクリアしました`);
+            } else {
+              updateFifteenStatus("空きマスの隣の数字を動かしてください");
+            }
+            return true;
+          }
+
+          function shuffleFifteenPuzzle() {
+            fifteenTiles = [...solvedFifteenTiles];
+            fifteenMoves = 0;
+            fifteenIsSolved = false;
+
+            let lastEmptyIndex = fifteenTiles.indexOf(0);
+            for (let step = 0; step < 180; step += 1) {
+              const emptyIndex = fifteenTiles.indexOf(0);
+              const movableIndexes = fifteenTiles
+                .map((tile, index) => index)
+                .filter((index) => index !== lastEmptyIndex && canMoveFifteenTile(index));
+              const nextIndex = movableIndexes[Math.floor(Math.random() * movableIndexes.length)];
+              lastEmptyIndex = emptyIndex;
+              moveFifteenTile(nextIndex, false);
+            }
+
+            if (isFifteenSolved()) {
+              shuffleFifteenPuzzle();
+              return;
+            }
+
+            fifteenMoves = 0;
+            fifteenIsSolved = false;
+            renderFifteenBoard();
+            updateFifteenStatus("ゲーム開始です。空きマスの隣をクリックしてください");
+          }
+
+          function resetFifteenPuzzle() {
+            fifteenTiles = [...solvedFifteenTiles];
+            fifteenMoves = 0;
+            fifteenIsSolved = true;
+            renderFifteenBoard();
+            updateFifteenStatus("リセットしました。シャッフルして開始してください");
+          }
+
+          fifteenShuffleButton.addEventListener("click", shuffleFifteenPuzzle);
+          fifteenResetButton.addEventListener("click", resetFifteenPuzzle);
+          resetFifteenPuzzle();
+        </script>""",
 )
 RANKING_HTML = render_page(
     title="ランキング | Ocean Game Hub",

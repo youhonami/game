@@ -4837,11 +4837,23 @@ PUZZLE_HTML = render_page(
             <h3>移動回数</h3>
             <p id="fifteen-moves">0</p>
           </div>
+          <div class="info-card">
+            <h3>ハイスコア</h3>
+            <p><span id="fifteen-high-score">-</span> / <span id="fifteen-high-score-name">---</span></p>
+          </div>
           <div class="fifteen-puzzle-actions">
             <button class="primary-button" id="fifteen-shuffle" type="button">シャッフル</button>
             <button class="primary-button" id="fifteen-reset" type="button">リセット</button>
           </div>
           <div class="fifteen-puzzle-board" id="fifteen-board"></div>
+          <form class="score-name-form" id="fifteen-score-form" hidden>
+            <label>
+              プレイヤー名（3文字）
+              <input id="fifteen-player-name" name="player-name" maxlength="3" autocomplete="off" required>
+            </label>
+            <button class="primary-button" type="submit">スコア登録</button>
+            <p class="score-save-message" id="fifteen-score-save-message"></p>
+          </form>
           <div class="info-card">
             <h3>遊び方</h3>
             <p>空きマスの上下左右にある数字をクリックすると、その数字が空きマスへ移動します。</p>
@@ -4853,11 +4865,21 @@ PUZZLE_HTML = render_page(
           const fifteenMovesElement = document.getElementById("fifteen-moves");
           const fifteenShuffleButton = document.getElementById("fifteen-shuffle");
           const fifteenResetButton = document.getElementById("fifteen-reset");
+          const fifteenHighScoreElement = document.getElementById("fifteen-high-score");
+          const fifteenHighScoreNameElement = document.getElementById("fifteen-high-score-name");
+          const fifteenScoreForm = document.getElementById("fifteen-score-form");
+          const fifteenPlayerNameInput = document.getElementById("fifteen-player-name");
+          const fifteenScoreSaveMessage = document.getElementById("fifteen-score-save-message");
 
+          const fifteenHighScoreKey = "gameHubFifteenPuzzleHighScore";
+          const fifteenHighScoreNameKey = "gameHubFifteenPuzzleHighScoreName";
+          const fifteenRankingKey = "gameHubFifteenPuzzleRanking";
           const solvedFifteenTiles = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0];
           let fifteenTiles = [...solvedFifteenTiles];
           let fifteenMoves = 0;
           let fifteenIsSolved = true;
+          let fifteenHasStarted = false;
+          let fifteenCanRegisterScore = false;
 
           function getFifteenRow(index) {
             return Math.floor(index / 4);
@@ -4884,6 +4906,55 @@ PUZZLE_HTML = render_page(
             fifteenStatusElement.textContent = message;
           }
 
+          function loadFifteenRanking() {
+            try {
+              const ranking = JSON.parse(localStorage.getItem(fifteenRankingKey) || "[]");
+              return Array.isArray(ranking) ? ranking : [];
+            } catch {
+              return [];
+            }
+          }
+
+          function updateFifteenHighScoreDisplay() {
+            const highScore = Number(localStorage.getItem(fifteenHighScoreKey) || 0);
+            const highScoreName = localStorage.getItem(fifteenHighScoreNameKey) || "---";
+            fifteenHighScoreElement.textContent = highScore > 0 ? String(highScore) : "-";
+            fifteenHighScoreNameElement.textContent = highScore > 0 ? highScoreName : "---";
+          }
+
+          function saveFifteenScoreEntry(playerName) {
+            const ranking = loadFifteenRanking()
+              .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)));
+            ranking.push({
+              name: playerName.slice(0, 3),
+              score: fifteenMoves,
+            });
+            ranking.sort((left, right) => Number(left.score) - Number(right.score));
+            localStorage.setItem(fifteenRankingKey, JSON.stringify(ranking.slice(0, 5)));
+
+            const currentHighScore = Number(localStorage.getItem(fifteenHighScoreKey) || 0);
+            if (currentHighScore === 0 || fifteenMoves < currentHighScore) {
+              localStorage.setItem(fifteenHighScoreKey, String(fifteenMoves));
+              localStorage.setItem(fifteenHighScoreNameKey, playerName.slice(0, 3));
+            }
+            updateFifteenHighScoreDisplay();
+          }
+
+          function resetFifteenScoreForm() {
+            fifteenScoreForm.hidden = true;
+            fifteenPlayerNameInput.value = "";
+            fifteenScoreSaveMessage.textContent = "";
+            fifteenScoreForm.querySelector('button[type="submit"]').hidden = false;
+            fifteenCanRegisterScore = false;
+          }
+
+          function showFifteenScoreForm() {
+            fifteenScoreForm.hidden = false;
+            fifteenScoreSaveMessage.textContent = "";
+            fifteenCanRegisterScore = true;
+            fifteenPlayerNameInput.focus();
+          }
+
           function renderFifteenBoard() {
             fifteenBoardElement.innerHTML = fifteenTiles
               .map((tile, index) => {
@@ -4902,6 +4973,10 @@ PUZZLE_HTML = render_page(
           }
 
           function moveFifteenTile(tileIndex, countMove) {
+            if (fifteenIsSolved && countMove) {
+              return false;
+            }
+
             if (!canMoveFifteenTile(tileIndex)) {
               return false;
             }
@@ -4917,6 +4992,9 @@ PUZZLE_HTML = render_page(
             renderFifteenBoard();
             if (fifteenIsSolved) {
               updateFifteenStatus(`完成です！ ${fifteenMoves} 回でクリアしました`);
+              if (fifteenHasStarted && countMove) {
+                showFifteenScoreForm();
+              }
             } else {
               updateFifteenStatus("空きマスの隣の数字を動かしてください");
             }
@@ -4927,6 +5005,8 @@ PUZZLE_HTML = render_page(
             fifteenTiles = [...solvedFifteenTiles];
             fifteenMoves = 0;
             fifteenIsSolved = false;
+            fifteenHasStarted = true;
+            resetFifteenScoreForm();
 
             let lastEmptyIndex = fifteenTiles.indexOf(0);
             for (let step = 0; step < 180; step += 1) {
@@ -4946,6 +5026,7 @@ PUZZLE_HTML = render_page(
 
             fifteenMoves = 0;
             fifteenIsSolved = false;
+            fifteenHasStarted = true;
             renderFifteenBoard();
             updateFifteenStatus("ゲーム開始です。空きマスの隣をクリックしてください");
           }
@@ -4954,12 +5035,35 @@ PUZZLE_HTML = render_page(
             fifteenTiles = [...solvedFifteenTiles];
             fifteenMoves = 0;
             fifteenIsSolved = true;
+            fifteenHasStarted = false;
+            resetFifteenScoreForm();
             renderFifteenBoard();
             updateFifteenStatus("リセットしました。シャッフルして開始してください");
           }
 
           fifteenShuffleButton.addEventListener("click", shuffleFifteenPuzzle);
           fifteenResetButton.addEventListener("click", resetFifteenPuzzle);
+          fifteenPlayerNameInput.addEventListener("input", () => {
+            fifteenPlayerNameInput.value = fifteenPlayerNameInput.value.slice(0, 3).toUpperCase();
+          });
+          fifteenScoreForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const playerName = fifteenPlayerNameInput.value.trim().toUpperCase();
+            if (!fifteenCanRegisterScore) {
+              fifteenScoreSaveMessage.textContent = "このスコアは登録済みです";
+              return;
+            }
+            if (!playerName) {
+              fifteenScoreSaveMessage.textContent = "名前を入力してください";
+              return;
+            }
+
+            saveFifteenScoreEntry(playerName);
+            fifteenCanRegisterScore = false;
+            fifteenScoreSaveMessage.textContent = "スコアを登録しました";
+            fifteenScoreForm.querySelector('button[type="submit"]').hidden = true;
+          });
+          updateFifteenHighScoreDisplay();
           resetFifteenPuzzle();
         </script>""",
 )
@@ -4985,13 +5089,18 @@ RANKING_HTML = render_page(
             <h3>ブロック崩し</h3>
             <ol class="ranking-list" id="ranking-breakout"></ol>
           </section>
+          <section class="ranking-card">
+            <h3>15パズル</h3>
+            <ol class="ranking-list" id="ranking-fifteen-puzzle"></ol>
+          </section>
         </div>
         <script>
           const rankingSources = [
-            { elementId: "ranking-tetris", storageKey: "gameHubTetrisRanking" },
-            { elementId: "ranking-shooting", storageKey: "gameHubShootingRanking" },
-            { elementId: "ranking-puyopuyo", storageKey: "gameHubPuyopuyoRanking" },
-            { elementId: "ranking-breakout", storageKey: "gameHubBreakoutRanking" },
+            { elementId: "ranking-tetris", storageKey: "gameHubTetrisRanking", order: "desc" },
+            { elementId: "ranking-shooting", storageKey: "gameHubShootingRanking", order: "desc" },
+            { elementId: "ranking-puyopuyo", storageKey: "gameHubPuyopuyoRanking", order: "desc" },
+            { elementId: "ranking-breakout", storageKey: "gameHubBreakoutRanking", order: "desc" },
+            { elementId: "ranking-fifteen-puzzle", storageKey: "gameHubFifteenPuzzleRanking", order: "asc" },
           ];
 
           function loadRanking(storageKey) {
@@ -5003,11 +5112,15 @@ RANKING_HTML = render_page(
             }
           }
 
-          function renderRanking({ elementId, storageKey }) {
+          function renderRanking({ elementId, storageKey, order }) {
             const listElement = document.getElementById(elementId);
             const topScores = loadRanking(storageKey)
               .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
-              .sort((left, right) => Number(right.score) - Number(left.score))
+              .sort((left, right) => (
+                order === "asc"
+                  ? Number(left.score) - Number(right.score)
+                  : Number(right.score) - Number(left.score)
+              ))
               .slice(0, 5);
 
             if (topScores.length === 0) {
@@ -5192,6 +5305,15 @@ def render_owner_scores_page() -> str:
               <ul class="score-entry-list" id="admin-breakout-list"></ul>
             </div>
           </section>
+          <section class="admin-card">
+            <button class="admin-toggle" type="button" data-toggle-score="fifteenPuzzle" aria-expanded="false">
+              15パズル<span>開く</span>
+            </button>
+            <div class="admin-score-detail" id="admin-fifteen-puzzle-detail" hidden>
+              <p id="admin-fifteen-puzzle-count">読み込み中...</p>
+              <ul class="score-entry-list" id="admin-fifteen-puzzle-list"></ul>
+            </div>
+          </section>
         </div>
         <div class="admin-actions">
           <button class="danger-button" id="delete-selected-game-scores" type="button" disabled>選択中ゲームのスコアを削除</button>
@@ -5228,6 +5350,15 @@ def render_owner_scores_page() -> str:
               detailId: "admin-breakout-detail",
               listId: "admin-breakout-list",
               keys: ["gameHubBreakoutRanking", "gameHubBreakoutHighScore", "gameHubBreakoutHighScoreName"],
+              order: "desc",
+            },
+            fifteenPuzzle: {
+              label: "15パズル",
+              countId: "admin-fifteen-puzzle-count",
+              detailId: "admin-fifteen-puzzle-detail",
+              listId: "admin-fifteen-puzzle-list",
+              keys: ["gameHubFifteenPuzzleRanking", "gameHubFifteenPuzzleHighScore", "gameHubFifteenPuzzleHighScoreName"],
+              order: "asc",
             },
           };
 
@@ -5271,7 +5402,11 @@ def render_owner_scores_page() -> str:
           function updateHighScoreFromRanking(store) {
             const ranking = loadRanking(store.keys[0])
               .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
-              .sort((left, right) => Number(right.score) - Number(left.score));
+              .sort((left, right) => (
+                store.order === "asc"
+                  ? Number(left.score) - Number(right.score)
+                  : Number(right.score) - Number(left.score)
+              ));
             const topEntry = ranking[0];
 
             if (!topEntry) {
@@ -5289,7 +5424,11 @@ def render_owner_scores_page() -> str:
             const listElement = document.getElementById(store.listId);
             const ranking = loadRanking(store.keys[0])
               .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.score)))
-              .sort((left, right) => Number(right.score) - Number(left.score));
+              .sort((left, right) => (
+                store.order === "asc"
+                  ? Number(left.score) - Number(right.score)
+                  : Number(right.score) - Number(left.score)
+              ));
 
             if (ranking.length === 0) {
               listElement.classList.remove("is-scrollable");

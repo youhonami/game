@@ -4846,19 +4846,27 @@ PUZZLE_HTML = render_page(
             <button class="primary-button" id="fifteen-reset" type="button">リセット</button>
           </div>
           <div class="fifteen-puzzle-board" id="fifteen-board"></div>
-          <form class="score-name-form" id="fifteen-score-form" hidden>
-            <label>
-              プレイヤー名（3文字）
-              <input id="fifteen-player-name" name="player-name" maxlength="3" autocomplete="off" required>
-            </label>
-            <button class="primary-button" type="submit">スコア登録</button>
-            <p class="score-save-message" id="fifteen-score-save-message"></p>
-          </form>
           <div class="info-card">
             <h3>遊び方</h3>
             <p>空きマスの上下左右にある数字をクリックすると、その数字が空きマスへ移動します。</p>
           </div>
         </section>
+        <div class="game-over-overlay" id="fifteen-score-modal" hidden>
+          <div class="game-over-dialog" role="dialog" aria-modal="true" aria-labelledby="fifteen-score-title">
+            <h3 id="fifteen-score-title">クリア</h3>
+            <p class="game-over-score">移動回数: <span id="fifteen-final-moves">0</span></p>
+            <form class="score-name-form" id="fifteen-score-form">
+            <label>
+              プレイヤー名（3文字）
+              <input id="fifteen-player-name" name="player-name" maxlength="3" autocomplete="off" required>
+            </label>
+            <button class="primary-button" type="submit">登録</button>
+            <p class="score-save-message" id="fifteen-score-save-message"></p>
+            <button class="primary-button" id="fifteen-play-again" type="button">もう一度遊ぶ</button>
+            <a class="primary-button" href="/ranking">ランキングを見る</a>
+          </form>
+          </div>
+        </div>
         <script>
           const fifteenBoardElement = document.getElementById("fifteen-board");
           const fifteenStatusElement = document.getElementById("fifteen-status");
@@ -4867,9 +4875,12 @@ PUZZLE_HTML = render_page(
           const fifteenResetButton = document.getElementById("fifteen-reset");
           const fifteenHighScoreElement = document.getElementById("fifteen-high-score");
           const fifteenHighScoreNameElement = document.getElementById("fifteen-high-score-name");
+          const fifteenScoreModal = document.getElementById("fifteen-score-modal");
+          const fifteenFinalMovesElement = document.getElementById("fifteen-final-moves");
           const fifteenScoreForm = document.getElementById("fifteen-score-form");
           const fifteenPlayerNameInput = document.getElementById("fifteen-player-name");
           const fifteenScoreSaveMessage = document.getElementById("fifteen-score-save-message");
+          const fifteenPlayAgainButton = document.getElementById("fifteen-play-again");
 
           const fifteenHighScoreKey = "gameHubFifteenPuzzleHighScore";
           const fifteenHighScoreNameKey = "gameHubFifteenPuzzleHighScoreName";
@@ -4928,6 +4939,7 @@ PUZZLE_HTML = render_page(
             ranking.push({
               name: playerName.slice(0, 3),
               score: fifteenMoves,
+              playedAt: new Date().toISOString(),
             });
             ranking.sort((left, right) => Number(left.score) - Number(right.score));
             localStorage.setItem(fifteenRankingKey, JSON.stringify(ranking.slice(0, 5)));
@@ -4941,16 +4953,19 @@ PUZZLE_HTML = render_page(
           }
 
           function resetFifteenScoreForm() {
-            fifteenScoreForm.hidden = true;
+            fifteenScoreModal.hidden = true;
             fifteenPlayerNameInput.value = "";
             fifteenScoreSaveMessage.textContent = "";
             fifteenScoreForm.querySelector('button[type="submit"]').hidden = false;
             fifteenCanRegisterScore = false;
           }
 
-          function showFifteenScoreForm() {
-            fifteenScoreForm.hidden = false;
+          function showFifteenScoreModal() {
+            fifteenFinalMovesElement.textContent = String(fifteenMoves);
+            fifteenScoreModal.hidden = false;
             fifteenScoreSaveMessage.textContent = "";
+            fifteenPlayerNameInput.value = "";
+            fifteenScoreForm.querySelector('button[type="submit"]').hidden = false;
             fifteenCanRegisterScore = true;
             fifteenPlayerNameInput.focus();
           }
@@ -4993,7 +5008,7 @@ PUZZLE_HTML = render_page(
             if (fifteenIsSolved) {
               updateFifteenStatus(`完成です！ ${fifteenMoves} 回でクリアしました`);
               if (fifteenHasStarted && countMove) {
-                showFifteenScoreForm();
+                showFifteenScoreModal();
               }
             } else {
               updateFifteenStatus("空きマスの隣の数字を動かしてください");
@@ -5043,6 +5058,7 @@ PUZZLE_HTML = render_page(
 
           fifteenShuffleButton.addEventListener("click", shuffleFifteenPuzzle);
           fifteenResetButton.addEventListener("click", resetFifteenPuzzle);
+          fifteenPlayAgainButton.addEventListener("click", shuffleFifteenPuzzle);
           fifteenPlayerNameInput.addEventListener("input", () => {
             fifteenPlayerNameInput.value = fifteenPlayerNameInput.value.slice(0, 3).toUpperCase();
           });

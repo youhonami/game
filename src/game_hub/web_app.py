@@ -4839,7 +4839,8 @@ PUZZLE_HTML = render_page(
           </div>
           <div class="info-card">
             <h3>ハイスコア</h3>
-            <p><span id="fifteen-high-score">-</span> / <span id="fifteen-high-score-name">---</span></p>
+            <p>移動回数: <span id="fifteen-high-score">-</span> / <span id="fifteen-high-score-name">---</span></p>
+            <p>クリアタイム: <span id="fifteen-high-score-time">-</span></p>
           </div>
           <div class="fifteen-puzzle-actions">
             <button class="primary-button" id="fifteen-shuffle" type="button">シャッフル</button>
@@ -4855,6 +4856,7 @@ PUZZLE_HTML = render_page(
           <div class="game-over-dialog" role="dialog" aria-modal="true" aria-labelledby="fifteen-score-title">
             <h3 id="fifteen-score-title">クリア</h3>
             <p class="game-over-score">移動回数: <span id="fifteen-final-moves">0</span></p>
+            <p class="game-over-score">クリアタイム: <span id="fifteen-final-time">0秒</span></p>
             <form class="score-name-form" id="fifteen-score-form">
             <label>
               プレイヤー名（3文字）
@@ -4875,8 +4877,10 @@ PUZZLE_HTML = render_page(
           const fifteenResetButton = document.getElementById("fifteen-reset");
           const fifteenHighScoreElement = document.getElementById("fifteen-high-score");
           const fifteenHighScoreNameElement = document.getElementById("fifteen-high-score-name");
+          const fifteenHighScoreTimeElement = document.getElementById("fifteen-high-score-time");
           const fifteenScoreModal = document.getElementById("fifteen-score-modal");
           const fifteenFinalMovesElement = document.getElementById("fifteen-final-moves");
+          const fifteenFinalTimeElement = document.getElementById("fifteen-final-time");
           const fifteenScoreForm = document.getElementById("fifteen-score-form");
           const fifteenPlayerNameInput = document.getElementById("fifteen-player-name");
           const fifteenScoreSaveMessage = document.getElementById("fifteen-score-save-message");
@@ -4884,6 +4888,7 @@ PUZZLE_HTML = render_page(
 
           const fifteenHighScoreKey = "gameHubFifteenPuzzleHighScore";
           const fifteenHighScoreNameKey = "gameHubFifteenPuzzleHighScoreName";
+          const fifteenHighScoreTimeKey = "gameHubFifteenPuzzleHighScoreTime";
           const fifteenRankingKey = "gameHubFifteenPuzzleRanking";
           const solvedFifteenTiles = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0];
           let fifteenTiles = [...solvedFifteenTiles];
@@ -4891,6 +4896,8 @@ PUZZLE_HTML = render_page(
           let fifteenIsSolved = true;
           let fifteenHasStarted = false;
           let fifteenCanRegisterScore = false;
+          let fifteenStartedAt = 0;
+          let fifteenClearTimeSeconds = 0;
 
           function getFifteenRow(index) {
             return Math.floor(index / 4);
@@ -4917,6 +4924,19 @@ PUZZLE_HTML = render_page(
             fifteenStatusElement.textContent = message;
           }
 
+          function formatFifteenTime(totalSeconds) {
+            if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+              return "-";
+            }
+
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            if (minutes === 0) {
+              return `${seconds}秒`;
+            }
+            return `${minutes}分${String(seconds).padStart(2, "0")}秒`;
+          }
+
           function loadFifteenRanking() {
             try {
               const ranking = JSON.parse(localStorage.getItem(fifteenRankingKey) || "[]");
@@ -4929,8 +4949,10 @@ PUZZLE_HTML = render_page(
           function updateFifteenHighScoreDisplay() {
             const highScore = Number(localStorage.getItem(fifteenHighScoreKey) || 0);
             const highScoreName = localStorage.getItem(fifteenHighScoreNameKey) || "---";
+            const highScoreTime = Number(localStorage.getItem(fifteenHighScoreTimeKey) || 0);
             fifteenHighScoreElement.textContent = highScore > 0 ? String(highScore) : "-";
             fifteenHighScoreNameElement.textContent = highScore > 0 ? highScoreName : "---";
+            fifteenHighScoreTimeElement.textContent = highScore > 0 ? formatFifteenTime(highScoreTime) : "-";
           }
 
           function saveFifteenScoreEntry(playerName) {
@@ -4939,15 +4961,25 @@ PUZZLE_HTML = render_page(
             ranking.push({
               name: playerName.slice(0, 3),
               score: fifteenMoves,
+              clearTime: fifteenClearTimeSeconds,
               playedAt: new Date().toISOString(),
             });
-            ranking.sort((left, right) => Number(left.score) - Number(right.score));
+            ranking.sort((left, right) => (
+              Number(left.score) - Number(right.score)
+              || (Number(left.clearTime) || Number.MAX_SAFE_INTEGER) - (Number(right.clearTime) || Number.MAX_SAFE_INTEGER)
+            ));
             localStorage.setItem(fifteenRankingKey, JSON.stringify(ranking.slice(0, 5)));
 
             const currentHighScore = Number(localStorage.getItem(fifteenHighScoreKey) || 0);
-            if (currentHighScore === 0 || fifteenMoves < currentHighScore) {
+            const currentHighScoreTime = Number(localStorage.getItem(fifteenHighScoreTimeKey) || 0);
+            if (
+              currentHighScore === 0
+              || fifteenMoves < currentHighScore
+              || (fifteenMoves === currentHighScore && (currentHighScoreTime === 0 || fifteenClearTimeSeconds < currentHighScoreTime))
+            ) {
               localStorage.setItem(fifteenHighScoreKey, String(fifteenMoves));
               localStorage.setItem(fifteenHighScoreNameKey, playerName.slice(0, 3));
+              localStorage.setItem(fifteenHighScoreTimeKey, String(fifteenClearTimeSeconds));
             }
             updateFifteenHighScoreDisplay();
           }
@@ -4962,6 +4994,7 @@ PUZZLE_HTML = render_page(
 
           function showFifteenScoreModal() {
             fifteenFinalMovesElement.textContent = String(fifteenMoves);
+            fifteenFinalTimeElement.textContent = formatFifteenTime(fifteenClearTimeSeconds);
             fifteenScoreModal.hidden = false;
             fifteenScoreSaveMessage.textContent = "";
             fifteenPlayerNameInput.value = "";
@@ -5006,7 +5039,8 @@ PUZZLE_HTML = render_page(
             fifteenIsSolved = isFifteenSolved();
             renderFifteenBoard();
             if (fifteenIsSolved) {
-              updateFifteenStatus(`完成です！ ${fifteenMoves} 回でクリアしました`);
+              fifteenClearTimeSeconds = Math.max(1, Math.floor((Date.now() - fifteenStartedAt) / 1000));
+              updateFifteenStatus(`完成です！ ${fifteenMoves} 回、${formatFifteenTime(fifteenClearTimeSeconds)}でクリアしました`);
               if (fifteenHasStarted && countMove) {
                 showFifteenScoreModal();
               }
@@ -5021,6 +5055,8 @@ PUZZLE_HTML = render_page(
             fifteenMoves = 0;
             fifteenIsSolved = false;
             fifteenHasStarted = true;
+            fifteenStartedAt = 0;
+            fifteenClearTimeSeconds = 0;
             resetFifteenScoreForm();
 
             let lastEmptyIndex = fifteenTiles.indexOf(0);
@@ -5042,6 +5078,8 @@ PUZZLE_HTML = render_page(
             fifteenMoves = 0;
             fifteenIsSolved = false;
             fifteenHasStarted = true;
+            fifteenStartedAt = Date.now();
+            fifteenClearTimeSeconds = 0;
             renderFifteenBoard();
             updateFifteenStatus("ゲーム開始です。空きマスの隣をクリックしてください");
           }
@@ -5051,6 +5089,8 @@ PUZZLE_HTML = render_page(
             fifteenMoves = 0;
             fifteenIsSolved = true;
             fifteenHasStarted = false;
+            fifteenStartedAt = 0;
+            fifteenClearTimeSeconds = 0;
             resetFifteenScoreForm();
             renderFifteenBoard();
             updateFifteenStatus("リセットしました。シャッフルして開始してください");
@@ -5135,6 +5175,7 @@ RANKING_HTML = render_page(
               .sort((left, right) => (
                 order === "asc"
                   ? Number(left.score) - Number(right.score)
+                    || (Number(left.clearTime) || Number.MAX_SAFE_INTEGER) - (Number(right.clearTime) || Number.MAX_SAFE_INTEGER)
                   : Number(right.score) - Number(left.score)
               ))
               .slice(0, 5);
@@ -5373,7 +5414,7 @@ def render_owner_scores_page() -> str:
               countId: "admin-fifteen-puzzle-count",
               detailId: "admin-fifteen-puzzle-detail",
               listId: "admin-fifteen-puzzle-list",
-              keys: ["gameHubFifteenPuzzleRanking", "gameHubFifteenPuzzleHighScore", "gameHubFifteenPuzzleHighScoreName"],
+              keys: ["gameHubFifteenPuzzleRanking", "gameHubFifteenPuzzleHighScore", "gameHubFifteenPuzzleHighScoreName", "gameHubFifteenPuzzleHighScoreTime"],
               order: "asc",
             },
           };

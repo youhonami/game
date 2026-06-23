@@ -1169,7 +1169,7 @@ def render_page(
         <a class="{breakout_class}" href="/breakout">ブロック崩し</a>
         <a class="{ludo_class}" href="/ludo">ルドー</a>
         <a class="{trump_class}" href="/trump">トランプ</a>
-        <a class="{puzzle_class}" href="/puzzle">パズル</a>
+        <a class="{puzzle_class}" href="/puzzle">15パズル</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
         <a class="{contact_class}" href="/contact">お問い合わせ</a>
       </nav>

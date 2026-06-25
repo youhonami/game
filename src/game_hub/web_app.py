@@ -11,6 +11,7 @@ from .pages.breakout import BREAKOUT_HTML
 from .pages.home import HOME_HTML
 from .pages.ludo import LUDO_HTML
 from .pages.memory import MEMORY_HTML
+from .pages.minesweeper import MINESWEEPER_HTML
 from .pages.old_maid import OLD_MAID_HTML
 from .pages.puzzle import PUZZLE_HTML
 from .pages.puyopuyo import PUYOPUYO_HTML
@@ -564,6 +565,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/puzzle":
             self._send_html(PUZZLE_HTML)
+            return
+
+        if path == "/minesweeper":
+            self._send_html(MINESWEEPER_HTML)
             return
 
         if path in {"/ranking", "/score"}:

@@ -1022,6 +1022,70 @@ STYLE = """
       gap: 14px;
     }
 
+    .minesweeper-table {
+      display: grid;
+      gap: 18px;
+      width: min(560px, 100%);
+      margin: 30px auto 0;
+      text-align: left;
+    }
+
+    .minesweeper-status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+      gap: 14px;
+    }
+
+    .minesweeper-board {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 6px;
+      padding: 14px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .minesweeper-cell {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+      background: rgba(28, 150, 205, 0.9);
+      border: 1px solid rgba(190, 245, 255, 0.86);
+      border-radius: 10px;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+
+    .minesweeper-cell:hover {
+      transform: translateY(-2px);
+      background: rgba(45, 170, 220, 0.95);
+    }
+
+    .minesweeper-cell.is-open {
+      cursor: default;
+      background: rgba(0, 18, 40, 0.78);
+      border-color: rgba(150, 235, 255, 0.38);
+      transform: none;
+    }
+
+    .minesweeper-cell.is-flagged {
+      background: rgba(255, 170, 70, 0.86);
+    }
+
+    .minesweeper-cell.is-mine {
+      background: rgba(210, 60, 80, 0.92);
+    }
+
+    .minesweeper-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;
@@ -1122,6 +1186,7 @@ def render_page(
     ludo_class = "active" if active_page == "ludo" else ""
     trump_class = "active" if active_page == "trump" else ""
     puzzle_class = "active" if active_page == "puzzle" else ""
+    minesweeper_class = "active" if active_page == "minesweeper" else ""
     ranking_class = "active" if active_page == "ranking" else ""
     contact_class = "active" if active_page == "contact" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
@@ -1150,6 +1215,7 @@ def render_page(
         <a class="{ludo_class}" href="/ludo">ルドー</a>
         <a class="{trump_class}" href="/trump">トランプ</a>
         <a class="{puzzle_class}" href="/puzzle">15パズル</a>
+        <a class="{minesweeper_class}" href="/minesweeper">マインスイーパー</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
         <a class="{contact_class}" href="/contact">お問い合わせ</a>
       </nav>

@@ -333,6 +333,18 @@ STYLE = """
       outline: none;
     }
 
+    .score-name-form select {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      background: rgba(0, 18, 40, 0.78);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
     .score-save-message {
       min-height: 24px;
       margin: 0;
@@ -1025,20 +1037,19 @@ STYLE = """
     .minesweeper-table {
       display: grid;
       gap: 18px;
-      width: min(560px, 100%);
+      width: min(760px, 100%);
       margin: 30px auto 0;
       text-align: left;
     }
 
     .minesweeper-status-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(120px, 1fr));
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
       gap: 14px;
     }
 
     .minesweeper-board {
       display: grid;
-      grid-template-columns: repeat(9, 1fr);
       gap: 6px;
       padding: 14px;
       background: rgba(0, 18, 40, 0.68);
@@ -1051,7 +1062,7 @@ STYLE = """
       place-items: center;
       aspect-ratio: 1;
       color: #ffffff;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 800;
       cursor: pointer;
       background: rgba(28, 150, 205, 0.9);
@@ -1082,8 +1093,9 @@ STYLE = """
 
     .minesweeper-actions {
       display: grid;
-      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
       gap: 14px;
+      align-items: end;
     }
 
     .owner-contact-panel {

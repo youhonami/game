@@ -13,6 +13,10 @@ MINESWEEPER_HTML = render_page(
               <p id="minesweeper-status">新しいゲームを開始してください</p>
             </div>
             <div class="info-card">
+              <h3>難易度</h3>
+              <p id="minesweeper-difficulty-label">初級 9x9</p>
+            </div>
+            <div class="info-card">
               <h3>地雷</h3>
               <p><span id="minesweeper-mines-left">10</span> 個</p>
             </div>
@@ -22,6 +26,14 @@ MINESWEEPER_HTML = render_page(
             </div>
           </div>
           <div class="minesweeper-actions">
+            <label class="score-name-form">
+              難易度
+              <select id="minesweeper-difficulty">
+                <option value="beginner">初級（9x9 / 地雷10個）</option>
+                <option value="intermediate">中級（12x12 / 地雷20個）</option>
+                <option value="advanced">上級（16x16 / 地雷40個）</option>
+              </select>
+            </label>
             <button class="primary-button" id="minesweeper-new-game" type="button">新しいゲーム</button>
             <button class="primary-button" id="minesweeper-reveal" type="button">答えを見る</button>
           </div>
@@ -34,13 +46,21 @@ MINESWEEPER_HTML = render_page(
         <script>
           const minesweeperBoardElement = document.getElementById("minesweeper-board");
           const minesweeperStatusElement = document.getElementById("minesweeper-status");
+          const minesweeperDifficultyLabelElement = document.getElementById("minesweeper-difficulty-label");
           const minesweeperMinesLeftElement = document.getElementById("minesweeper-mines-left");
           const minesweeperTimeElement = document.getElementById("minesweeper-time");
+          const minesweeperDifficultySelect = document.getElementById("minesweeper-difficulty");
           const minesweeperNewGameButton = document.getElementById("minesweeper-new-game");
           const minesweeperRevealButton = document.getElementById("minesweeper-reveal");
 
-          const minesweeperSize = 9;
-          const minesweeperMineCount = 10;
+          const minesweeperDifficulties = {
+            beginner: { label: "初級", size: 9, mines: 10 },
+            intermediate: { label: "中級", size: 12, mines: 20 },
+            advanced: { label: "上級", size: 16, mines: 40 },
+          };
+          let minesweeperDifficulty = minesweeperDifficulties.beginner;
+          let minesweeperSize = minesweeperDifficulty.size;
+          let minesweeperMineCount = minesweeperDifficulty.mines;
           let minesweeperCells = [];
           let minesweeperIsStarted = false;
           let minesweeperIsGameOver = false;
@@ -56,6 +76,15 @@ MINESWEEPER_HTML = render_page(
               isFlagged: false,
               adjacentMines: 0,
             }));
+          }
+
+          function applyMinesweeperDifficulty() {
+            minesweeperDifficulty = minesweeperDifficulties[minesweeperDifficultySelect.value] || minesweeperDifficulties.beginner;
+            minesweeperSize = minesweeperDifficulty.size;
+            minesweeperMineCount = minesweeperDifficulty.mines;
+            minesweeperDifficultyLabelElement.textContent =
+              `${minesweeperDifficulty.label} ${minesweeperSize}x${minesweeperSize}`;
+            minesweeperBoardElement.style.gridTemplateColumns = `repeat(${minesweeperSize}, 1fr)`;
           }
 
           function getMinesweeperRow(index) {
@@ -131,6 +160,7 @@ MINESWEEPER_HTML = render_page(
           }
 
           function renderMinesweeperBoard() {
+            minesweeperBoardElement.style.gridTemplateColumns = `repeat(${minesweeperSize}, 1fr)`;
             minesweeperBoardElement.innerHTML = minesweeperCells
               .map((cell) => {
                 const classes = ["minesweeper-cell"];
@@ -267,6 +297,7 @@ MINESWEEPER_HTML = render_page(
 
           function resetMinesweeperGame() {
             stopMinesweeperTimer();
+            applyMinesweeperDifficulty();
             minesweeperCells = createMinesweeperCells();
             minesweeperIsStarted = false;
             minesweeperIsGameOver = false;
@@ -277,6 +308,7 @@ MINESWEEPER_HTML = render_page(
             renderMinesweeperBoard();
           }
 
+          minesweeperDifficultySelect.addEventListener("change", resetMinesweeperGame);
           minesweeperNewGameButton.addEventListener("click", resetMinesweeperGame);
           minesweeperRevealButton.addEventListener("click", revealMinesweeperAnswer);
           resetMinesweeperGame();

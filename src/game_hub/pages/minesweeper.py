@@ -43,6 +43,22 @@ MINESWEEPER_HTML = render_page(
             <p>左クリックでマスを開きます。数字は周囲8マスにある地雷の数です。右クリックで旗を立てて地雷の候補をメモできます。</p>
           </div>
         </section>
+        <div class="game-over-overlay" id="minesweeper-clear-modal" hidden>
+          <div class="game-over-dialog" role="dialog" aria-modal="true" aria-labelledby="minesweeper-clear-title">
+            <h3 id="minesweeper-clear-title">クリア</h3>
+            <p class="game-over-score"><span id="minesweeper-clear-difficulty">初級</span> / <span id="minesweeper-final-time">0</span> 秒</p>
+            <form class="score-name-form" id="minesweeper-score-form">
+              <label>
+                プレイヤー名（3文字）
+                <input id="minesweeper-player-name" name="player-name" maxlength="3" autocomplete="off" required>
+              </label>
+              <button class="primary-button" type="submit">登録</button>
+              <p class="score-save-message" id="minesweeper-score-save-message"></p>
+              <button class="primary-button" id="minesweeper-play-again" type="button">もう一度遊ぶ</button>
+              <a class="primary-button" href="/ranking">ランキングを見る</a>
+            </form>
+          </div>
+        </div>
         <script>
           const minesweeperBoardElement = document.getElementById("minesweeper-board");
           const minesweeperStatusElement = document.getElementById("minesweeper-status");
@@ -52,11 +68,18 @@ MINESWEEPER_HTML = render_page(
           const minesweeperDifficultySelect = document.getElementById("minesweeper-difficulty");
           const minesweeperNewGameButton = document.getElementById("minesweeper-new-game");
           const minesweeperRevealButton = document.getElementById("minesweeper-reveal");
+          const minesweeperClearModal = document.getElementById("minesweeper-clear-modal");
+          const minesweeperClearDifficultyElement = document.getElementById("minesweeper-clear-difficulty");
+          const minesweeperFinalTimeElement = document.getElementById("minesweeper-final-time");
+          const minesweeperScoreForm = document.getElementById("minesweeper-score-form");
+          const minesweeperPlayerNameInput = document.getElementById("minesweeper-player-name");
+          const minesweeperScoreSaveMessage = document.getElementById("minesweeper-score-save-message");
+          const minesweeperPlayAgainButton = document.getElementById("minesweeper-play-again");
 
           const minesweeperDifficulties = {
-            beginner: { label: "初級", size: 9, mines: 10 },
-            intermediate: { label: "中級", size: 12, mines: 20 },
-            advanced: { label: "上級", size: 16, mines: 40 },
+            beginner: { label: "初級", size: 9, mines: 10, rankingKey: "gameHubMinesweeperBeginnerRanking" },
+            intermediate: { label: "中級", size: 12, mines: 20, rankingKey: "gameHubMinesweeperIntermediateRanking" },
+            advanced: { label: "上級", size: 16, mines: 40, rankingKey: "gameHubMinesweeperAdvancedRanking" },
           };
           let minesweeperDifficulty = minesweeperDifficulties.beginner;
           let minesweeperSize = minesweeperDifficulty.size;
@@ -67,6 +90,9 @@ MINESWEEPER_HTML = render_page(
           let minesweeperOpenedCount = 0;
           let minesweeperTimer = null;
           let minesweeperSeconds = 0;
+          let minesweeperFinalTime = 0;
+          let minesweeperCompletedDifficultyKey = "beginner";
+          let minesweeperCanRegisterScore = false;
 
           function createMinesweeperCells() {
             return Array.from({ length: minesweeperSize * minesweeperSize }, (_, index) => ({
@@ -133,6 +159,50 @@ MINESWEEPER_HTML = render_page(
           function stopMinesweeperTimer() {
             clearInterval(minesweeperTimer);
             minesweeperTimer = null;
+          }
+
+          function loadMinesweeperRanking(rankingKey) {
+            try {
+              const ranking = JSON.parse(localStorage.getItem(rankingKey) || "[]");
+              return Array.isArray(ranking) ? ranking : [];
+            } catch {
+              return [];
+            }
+          }
+
+          function saveMinesweeperScore(playerName) {
+            const completedDifficulty = minesweeperDifficulties[minesweeperCompletedDifficultyKey];
+            const ranking = loadMinesweeperRanking(completedDifficulty.rankingKey)
+              .filter((entry) => entry && entry.name && Number.isFinite(Number(entry.time)));
+
+            ranking.push({
+              name: playerName.slice(0, 3),
+              time: minesweeperFinalTime,
+              difficulty: minesweeperCompletedDifficultyKey,
+              playedAt: new Date().toISOString(),
+            });
+            ranking.sort((left, right) => Number(left.time) - Number(right.time));
+            localStorage.setItem(completedDifficulty.rankingKey, JSON.stringify(ranking.slice(0, 10)));
+          }
+
+          function resetMinesweeperScoreForm() {
+            minesweeperClearModal.hidden = true;
+            minesweeperPlayerNameInput.value = "";
+            minesweeperScoreSaveMessage.textContent = "";
+            minesweeperScoreForm.querySelector('button[type="submit"]').hidden = false;
+            minesweeperCanRegisterScore = false;
+          }
+
+          function showMinesweeperClearModal() {
+            const completedDifficulty = minesweeperDifficulties[minesweeperCompletedDifficultyKey];
+            minesweeperClearDifficultyElement.textContent = completedDifficulty.label;
+            minesweeperFinalTimeElement.textContent = String(minesweeperFinalTime);
+            minesweeperClearModal.hidden = false;
+            minesweeperPlayerNameInput.value = "";
+            minesweeperScoreSaveMessage.textContent = "";
+            minesweeperScoreForm.querySelector('button[type="submit"]').hidden = false;
+            minesweeperCanRegisterScore = true;
+            minesweeperPlayerNameInput.focus();
           }
 
           function placeMinesweeperMines(firstOpenIndex) {
@@ -267,6 +337,10 @@ MINESWEEPER_HTML = render_page(
           function finishMinesweeperGame(isWin) {
             minesweeperIsGameOver = true;
             stopMinesweeperTimer();
+            if (isWin) {
+              minesweeperFinalTime = Math.max(1, minesweeperSeconds);
+              minesweeperCompletedDifficultyKey = minesweeperDifficultySelect.value;
+            }
             minesweeperCells.forEach((cell) => {
               if (cell.isMine) {
                 cell.isOpen = true;
@@ -276,9 +350,12 @@ MINESWEEPER_HTML = render_page(
               }
             });
             minesweeperStatusElement.textContent = isWin
-              ? `クリアです！ ${minesweeperSeconds} 秒で成功しました`
+              ? `クリアです！ ${minesweeperFinalTime} 秒で成功しました`
               : "地雷を踏みました。もう一度挑戦してください";
             renderMinesweeperBoard();
+            if (isWin) {
+              showMinesweeperClearModal();
+            }
           }
 
           function revealMinesweeperAnswer() {
@@ -298,11 +375,13 @@ MINESWEEPER_HTML = render_page(
           function resetMinesweeperGame() {
             stopMinesweeperTimer();
             applyMinesweeperDifficulty();
+            resetMinesweeperScoreForm();
             minesweeperCells = createMinesweeperCells();
             minesweeperIsStarted = false;
             minesweeperIsGameOver = false;
             minesweeperOpenedCount = 0;
             minesweeperSeconds = 0;
+            minesweeperFinalTime = 0;
             minesweeperTimeElement.textContent = "0";
             minesweeperStatusElement.textContent = "最初のマスをクリックして開始してください";
             renderMinesweeperBoard();
@@ -311,6 +390,27 @@ MINESWEEPER_HTML = render_page(
           minesweeperDifficultySelect.addEventListener("change", resetMinesweeperGame);
           minesweeperNewGameButton.addEventListener("click", resetMinesweeperGame);
           minesweeperRevealButton.addEventListener("click", revealMinesweeperAnswer);
+          minesweeperPlayAgainButton.addEventListener("click", resetMinesweeperGame);
+          minesweeperPlayerNameInput.addEventListener("input", () => {
+            minesweeperPlayerNameInput.value = minesweeperPlayerNameInput.value.slice(0, 3).toUpperCase();
+          });
+          minesweeperScoreForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const playerName = minesweeperPlayerNameInput.value.trim().toUpperCase();
+            if (!minesweeperCanRegisterScore) {
+              minesweeperScoreSaveMessage.textContent = "このタイムは登録済みです";
+              return;
+            }
+            if (!playerName) {
+              minesweeperScoreSaveMessage.textContent = "名前を入力してください";
+              return;
+            }
+
+            saveMinesweeperScore(playerName);
+            minesweeperCanRegisterScore = false;
+            minesweeperScoreSaveMessage.textContent = "クリアタイムを登録しました";
+            minesweeperScoreForm.querySelector('button[type="submit"]').hidden = true;
+          });
           resetMinesweeperGame();
         </script>""",
 )

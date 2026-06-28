@@ -20,6 +20,7 @@ from .pages.sevens import SEVENS_HTML
 from .pages.shooting import SHOOTING_HTML
 from .pages.tetris import TETRIS_HTML
 from .pages.trump import TRUMP_HTML
+from .pages.uno import UNO_HTML
 
 
 HOST = "127.0.0.1"
@@ -569,6 +570,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
 
         if path == "/minesweeper":
             self._send_html(MINESWEEPER_HTML)
+            return
+
+        if path == "/uno":
+            self._send_html(UNO_HTML)
             return
 
         if path in {"/ranking", "/score"}:

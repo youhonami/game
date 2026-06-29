@@ -1098,6 +1098,171 @@ STYLE = """
       align-items: end;
     }
 
+    .uno-setup {
+      display: grid;
+      gap: 18px;
+      max-width: 420px;
+      margin: 30px auto 0;
+      text-align: left;
+    }
+
+    .uno-setup label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .uno-setup select,
+    .uno-color-select {
+      width: 100%;
+      padding: 14px 16px;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 700;
+      background: rgba(0, 18, 40, 0.72);
+      border: 1px solid rgba(150, 235, 255, 0.78);
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .uno-table {
+      display: grid;
+      gap: 18px;
+      width: 960px;
+      max-width: calc(100vw - 420px);
+      margin-top: 30px;
+      text-align: left;
+    }
+
+    .uno-table[hidden] {
+      display: none;
+    }
+
+    .uno-actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 14px;
+      align-items: end;
+    }
+
+    .uno-actions label {
+      display: grid;
+      gap: 8px;
+      color: #d8f7ff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .uno-field {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .uno-discard {
+      display: grid;
+      place-items: center;
+      min-height: 170px;
+      padding: 18px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .uno-card,
+    .uno-card-back {
+      display: grid;
+      place-items: center;
+      width: 76px;
+      height: 106px;
+      padding: 8px;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      border-radius: 14px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+    }
+
+    .uno-card {
+      cursor: pointer;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .uno-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.36);
+    }
+
+    .uno-card.is-disabled {
+      cursor: not-allowed;
+      opacity: 0.46;
+      transform: none;
+    }
+
+    .uno-card-back {
+      background: rgba(4, 32, 64, 0.92);
+    }
+
+    .uno-card.is-red {
+      background: #d94343;
+    }
+
+    .uno-card.is-blue {
+      background: #2878d8;
+    }
+
+    .uno-card.is-green {
+      background: #2f9d55;
+    }
+
+    .uno-card.is-yellow {
+      color: #1d2430;
+      background: #f2d24b;
+    }
+
+    .uno-card.is-wild {
+      background: linear-gradient(135deg, #d94343 0 25%, #2878d8 25% 50%, #2f9d55 50% 75%, #f2d24b 75%);
+    }
+
+    .uno-hand {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 132px;
+      padding: 14px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 18px;
+    }
+
+    .uno-players {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .uno-player {
+      padding: 16px;
+      background: rgba(0, 18, 40, 0.68);
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 16px;
+    }
+
+    .uno-player.is-active {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(120, 225, 255, 0.22);
+    }
+
+    .uno-player h3,
+    .uno-player p {
+      margin: 0 0 10px;
+    }
+
     .owner-contact-panel {
       margin-top: 30px;
       padding: 20px;

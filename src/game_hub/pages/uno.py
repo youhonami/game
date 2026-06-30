@@ -36,32 +36,34 @@ UNO_HTML = render_page(
             <button class="primary-button" id="uno-reset" type="button">人数設定に戻る</button>
             <button class="primary-button" id="uno-new-game" type="button">同じ人数でもう一度</button>
           </div>
-          <div class="uno-field">
-            <div class="info-card">
-              <h3>山札</h3>
-              <p id="uno-deck-count">0枚</p>
-              <div class="uno-card-back">UNO</div>
-            </div>
-            <div class="uno-discard">
-              <div>
+          <div class="uno-board">
+            <div class="uno-seat uno-seat-top" id="uno-seat-top"></div>
+            <div class="uno-seat uno-seat-left" id="uno-seat-left"></div>
+            <div class="uno-center">
+              <div class="uno-deck-area">
+                <h3>山札</h3>
+                <p id="uno-deck-count">0枚</p>
+                <div class="uno-card-back">UNO</div>
+              </div>
+              <div class="uno-discard">
                 <h3>場札</h3>
                 <div id="uno-discard"></div>
                 <p>現在の色: <span id="uno-current-color">-</span></p>
               </div>
             </div>
-            <div class="info-card">
-              <h3>ルール</h3>
-              <p>同じ色・同じ数字/記号、またはワイルドを出せます。出せない時は山札から1枚引いてください。</p>
+            <div class="uno-seat uno-seat-right" id="uno-seat-right"></div>
+            <div class="uno-seat uno-seat-bottom" id="uno-seat-bottom">
+              <div class="uno-player">
+                <h3>あなた</h3>
+                <p>手札: 0枚</p>
+              </div>
+              <div class="uno-hand" id="uno-hand"></div>
             </div>
           </div>
-          <div>
-            <div class="info-card">
-              <h3>あなたの手札</h3>
-              <p>出せるカードをクリックしてください。ワイルドは出す前に色を選べます。</p>
-            </div>
-            <div class="uno-hand" id="uno-hand"></div>
+          <div class="info-card">
+            <h3>遊び方</h3>
+            <p>中央の山札からカードを引けます。下があなた、CPUは上・左・右に配置されます。出せるカードをクリックしてください。</p>
           </div>
-          <div class="uno-players" id="uno-players"></div>
         </section>
         <script>
           const unoSetupElement = document.getElementById("uno-setup");
@@ -77,7 +79,10 @@ UNO_HTML = render_page(
           const unoDiscardElement = document.getElementById("uno-discard");
           const unoCurrentColorElement = document.getElementById("uno-current-color");
           const unoHandElement = document.getElementById("uno-hand");
-          const unoPlayersElement = document.getElementById("uno-players");
+          const unoSeatTopElement = document.getElementById("uno-seat-top");
+          const unoSeatLeftElement = document.getElementById("uno-seat-left");
+          const unoSeatRightElement = document.getElementById("uno-seat-right");
+          const unoSeatBottomElement = document.getElementById("uno-seat-bottom");
 
           const unoColors = ["red", "blue", "green", "yellow"];
           const unoColorLabels = {
@@ -200,6 +205,32 @@ UNO_HTML = render_page(
             </button>`;
           }
 
+          function getUnoSeatName(playerIndex) {
+            if (playerIndex === 0) {
+              return "bottom";
+            }
+
+            if (unoPlayers.length === 2) {
+              return "top";
+            }
+
+            if (unoPlayers.length === 3) {
+              return playerIndex === 1 ? "top" : "right";
+            }
+
+            return ["bottom", "left", "top", "right"][playerIndex];
+          }
+
+          function renderUnoPlayerCard(player, index) {
+            return `
+              <section class="uno-player ${index === unoCurrentPlayerIndex && !unoIsGameOver ? "is-active" : ""}">
+                <h3>${player.name}</h3>
+                <p>手札: ${player.hand.length}枚</p>
+                <p>${index === 0 ? "あなたの席" : "CPUが自動で進めます"}</p>
+              </section>
+            `;
+          }
+
           function renderUno() {
             const topCard = getUnoTopCard();
             unoDeckCountElement.textContent = `${unoDeck.length}枚`;
@@ -223,13 +254,26 @@ UNO_HTML = render_page(
               });
             });
 
-            unoPlayersElement.innerHTML = unoPlayers.map((player, index) => `
-              <section class="uno-player ${index === unoCurrentPlayerIndex && !unoIsGameOver ? "is-active" : ""}">
-                <h3>${player.name}</h3>
-                <p>手札: ${player.hand.length}枚</p>
-                <p>${index === 0 ? "クリックしてカードを出します" : "CPUが自動で進めます"}</p>
-              </section>
-            `).join("");
+            unoSeatTopElement.innerHTML = "";
+            unoSeatLeftElement.innerHTML = "";
+            unoSeatRightElement.innerHTML = "";
+            unoSeatBottomElement.querySelector(".uno-player").outerHTML = renderUnoPlayerCard(human, 0);
+
+            unoPlayers.forEach((player, index) => {
+              if (index === 0) {
+                return;
+              }
+
+              const seatName = getUnoSeatName(index);
+              const seatElement = {
+                top: unoSeatTopElement,
+                left: unoSeatLeftElement,
+                right: unoSeatRightElement,
+              }[seatName];
+              if (seatElement) {
+                seatElement.innerHTML = renderUnoPlayerCard(player, index);
+              }
+            });
           }
 
           function applyUnoCardEffect(card) {
@@ -369,7 +413,15 @@ UNO_HTML = render_page(
             unoTableElement.hidden = true;
             unoStatusElement.textContent = "人数を選んでゲームを開始してください";
             unoHandElement.innerHTML = "";
-            unoPlayersElement.innerHTML = "";
+            unoSeatTopElement.innerHTML = "";
+            unoSeatLeftElement.innerHTML = "";
+            unoSeatRightElement.innerHTML = "";
+            unoSeatBottomElement.querySelector(".uno-player").outerHTML = `
+              <div class="uno-player">
+                <h3>あなた</h3>
+                <p>手札: 0枚</p>
+              </div>
+            `;
           }
 
           unoStartButton.addEventListener("click", startUnoGame);

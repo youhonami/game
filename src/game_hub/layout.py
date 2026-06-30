@@ -1155,21 +1155,82 @@ STYLE = """
       font-weight: 700;
     }
 
-    .uno-field {
+    .uno-board {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      align-items: stretch;
+      grid-template-areas:
+        ". top ."
+        "left center right"
+        ". bottom .";
+      grid-template-columns: minmax(170px, 1fr) minmax(300px, 1.4fr) minmax(170px, 1fr);
+      grid-template-rows: auto minmax(260px, auto) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      background: rgba(0, 10, 24, 0.42);
+      border: 1px solid rgba(150, 235, 255, 0.28);
+      border-radius: 22px;
     }
 
+    .uno-seat {
+      min-height: 116px;
+    }
+
+    .uno-seat-top {
+      grid-area: top;
+    }
+
+    .uno-seat-left {
+      grid-area: left;
+    }
+
+    .uno-seat-right {
+      grid-area: right;
+    }
+
+    .uno-seat-bottom {
+      grid-area: bottom;
+      display: grid;
+      gap: 12px;
+    }
+
+    .uno-center {
+      grid-area: center;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 16px;
+      align-items: center;
+      justify-items: center;
+      min-height: 250px;
+      padding: 20px;
+      background: radial-gradient(circle, rgba(28, 150, 205, 0.24), rgba(0, 18, 40, 0.72));
+      border: 1px solid rgba(150, 235, 255, 0.5);
+      border-radius: 24px;
+    }
+
+    .uno-deck-area,
     .uno-discard {
       display: grid;
       place-items: center;
-      min-height: 170px;
+      min-height: 190px;
       padding: 18px;
       background: rgba(0, 18, 40, 0.68);
       border: 1px solid rgba(150, 235, 255, 0.5);
       border-radius: 18px;
+      text-align: center;
+    }
+
+    .uno-deck-area h3,
+    .uno-discard h3 {
+      margin: 0 0 10px;
+      color: #9feaff;
+      font-size: 20px;
+    }
+
+    .uno-deck-area p,
+    .uno-discard p {
+      margin: 10px 0 0;
+      color: #ffffff;
+      font-weight: 700;
     }
 
     .uno-card,
@@ -1232,6 +1293,7 @@ STYLE = """
     .uno-hand {
       display: flex;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 10px;
       min-height: 132px;
       padding: 14px;
@@ -1240,14 +1302,9 @@ STYLE = """
       border-radius: 18px;
     }
 
-    .uno-players {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-
     .uno-player {
       padding: 16px;
+      text-align: center;
       background: rgba(0, 18, 40, 0.68);
       border: 1px solid rgba(150, 235, 255, 0.5);
       border-radius: 16px;

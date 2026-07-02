@@ -1422,6 +1422,7 @@ def render_page(
     puzzle_class = "active" if active_page == "puzzle" else ""
     minesweeper_class = "active" if active_page == "minesweeper" else ""
     uno_class = "active" if active_page == "uno" else ""
+    chat_room_class = "active" if active_page == "chat-room" else ""
     ranking_class = "active" if active_page == "ranking" else ""
     contact_class = "active" if active_page == "contact" else ""
     owner_login_class = "active" if active_page == "owner-login" else ""
@@ -1452,6 +1453,7 @@ def render_page(
         <a class="{puzzle_class}" href="/puzzle">15パズル</a>
         <a class="{minesweeper_class}" href="/minesweeper">マインスイーパー</a>
         <a class="{uno_class}" href="/uno">UNO</a>
+        <a class="{chat_room_class}" href="/chat-room">チャットルーム</a>
         <a class="{ranking_class}" href="/ranking">ランキング</a>
         <a class="{contact_class}" href="/contact">お問い合わせ</a>
       </nav>

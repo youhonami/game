@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .layout import render_page
 from .pages.breakout import BREAKOUT_HTML
+from .pages.chat_room import CHAT_ROOM_HTML
 from .pages.home import HOME_HTML
 from .pages.ludo import LUDO_HTML
 from .pages.memory import MEMORY_HTML
@@ -28,6 +29,7 @@ PORT = 8000
 OWNER_ADDRESS = "admin@estra.jp"
 OWNER_PASSWORD = "password"
 CONTACT_MESSAGES_PATH = Path(__file__).with_name("contact_messages.json")
+CHAT_ROOM_MESSAGES_PATH = Path(__file__).with_name("chat_room_messages.json")
 BACKGROUND_IMAGE_PATH = Path(
     "/Users/honamiyuusuke/.cursor/projects/"
     "Users-honamiyuusuke-coachtech-game/assets/"
@@ -91,6 +93,55 @@ def delete_contact_message(message_index: int) -> bool:
     messages.pop(message_index)
     save_contact_messages(messages)
     return True
+
+
+def load_chat_room_messages() -> list[dict[str, str]]:
+    if not CHAT_ROOM_MESSAGES_PATH.exists():
+        return []
+
+    try:
+        data = json.loads(CHAT_ROOM_MESSAGES_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    messages: list[dict[str, str]] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+
+        messages.append(
+            {
+                "name": str(item.get("name", "")),
+                "text": str(item.get("text", "")),
+                "sent_at": str(item.get("sent_at", "")),
+            }
+        )
+
+    return messages
+
+
+def save_chat_room_messages(messages: list[dict[str, str]]) -> None:
+    CHAT_ROOM_MESSAGES_PATH.write_text(
+        json.dumps(messages[-100:], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def add_chat_room_message(name: str, text: str) -> dict[str, str]:
+    message = {
+        "name": name[:12],
+        "text": text[:500],
+        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    }
+    messages = load_chat_room_messages()
+    messages.append(message)
+    save_chat_room_messages(messages)
+    return message
+
+
 def render_contact_page(
     status_message: str = "",
     is_error: bool = False,
@@ -576,6 +627,14 @@ class GameHubHandler(BaseHTTPRequestHandler):
             self._send_html(UNO_HTML)
             return
 
+        if path == "/chat-room":
+            self._send_html(CHAT_ROOM_HTML)
+            return
+
+        if path == "/chat-room/messages":
+            self._send_json({"messages": load_chat_room_messages()})
+            return
+
         if path in {"/ranking", "/score"}:
             self._send_html(RANKING_HTML)
             return
@@ -633,6 +692,24 @@ class GameHubHandler(BaseHTTPRequestHandler):
             self._send_html(render_contact_page("メッセージを送信しました"))
             return
 
+        if path == "/chat-room/messages":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+            try:
+                payload = json.loads(raw_body or "{}")
+            except json.JSONDecodeError:
+                payload = {}
+
+            name = str(payload.get("name", "")).strip()
+            text = str(payload.get("text", "")).strip()
+            if not name or not text:
+                self._send_json({"error": "お名前とメッセージを入力してください"}, status=400)
+                return
+
+            message = add_chat_room_message(name, text)
+            self._send_json({"message": message, "messages": load_chat_room_messages()})
+            return
+
         if path == "/owner-dashboard":
             content_length = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
@@ -673,6 +750,14 @@ class GameHubHandler(BaseHTTPRequestHandler):
         body = html.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_json(self, data: object, status: int = 200) -> None:
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

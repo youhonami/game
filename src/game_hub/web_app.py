@@ -142,6 +142,16 @@ def add_chat_room_message(name: str, text: str) -> dict[str, str]:
     return message
 
 
+def delete_chat_room_message(message_index: int) -> bool:
+    messages = load_chat_room_messages()
+    if message_index < 0 or message_index >= len(messages):
+        return False
+
+    messages.pop(message_index)
+    save_chat_room_messages(messages)
+    return True
+
+
 def render_contact_page(
     status_message: str = "",
     is_error: bool = False,
@@ -230,6 +240,30 @@ def render_contact_messages(messages: list[dict[str, str]]) -> str:
     return f'<ul class="contact-message-list">{"".join(items)}</ul>'
 
 
+def render_chat_room_messages(messages: list[dict[str, str]]) -> str:
+    if not messages:
+        return '<p class="empty-contact-message">チャットメッセージはまだありません</p>'
+
+    items = []
+    for message_index, chat_message in reversed(list(enumerate(messages))):
+        name = escape(chat_message["name"])
+        sent_at = escape(chat_message["sent_at"])
+        body = escape(chat_message["text"])
+        items.append(
+            f"""<li>
+              <strong>{name}</strong>
+              <small>{sent_at}</small>
+              <p>{body}</p>
+              <form class="contact-delete-form" action="/owner-chat-messages/delete" method="post">
+                <input type="hidden" name="message_index" value="{message_index}">
+                <button type="submit">削除</button>
+              </form>
+            </li>"""
+        )
+
+    return f'<ul class="contact-message-list">{"".join(items)}</ul>'
+
+
 def render_owner_dashboard_page() -> str:
     return render_page(
         title="管理ページ | Ocean Game Hub",
@@ -239,6 +273,7 @@ def render_owner_dashboard_page() -> str:
         <div class="owner-menu-grid">
           <a class="owner-menu-button" href="/owner-scores">スコア削除</a>
           <a class="owner-menu-button" href="/owner-messages">メッセージ確認</a>
+          <a class="owner-menu-button" href="/owner-chat-messages">チャット確認</a>
         </div>
         <a class="back-link" href="/">トップページに戻る</a>""",
     )
@@ -260,6 +295,28 @@ def render_owner_messages_page(status_message: str = "") -> str:
         <section class="owner-contact-panel">
           <h3>お問い合わせ</h3>
           {contact_messages_html}
+        </section>
+        {status_html}
+        <a class="back-link" href="/owner-dashboard">管理ページに戻る</a>""",
+    )
+
+
+def render_owner_chat_messages_page(status_message: str = "") -> str:
+    chat_messages_html = render_chat_room_messages(load_chat_room_messages())
+    status_html = (
+        f'<div class="success-message">{escape(status_message)}</div>'
+        if status_message
+        else ""
+    )
+
+    return render_page(
+        title="チャット確認 | Ocean Game Hub",
+        heading="チャット確認",
+        active_page="owner-login",
+        body_html=f"""<p>チャットルームに投稿されたメッセージを確認・削除できます</p>
+        <section class="owner-contact-panel">
+          <h3>チャットルーム</h3>
+          {chat_messages_html}
         </section>
         {status_html}
         <a class="back-link" href="/owner-dashboard">管理ページに戻る</a>""",
@@ -659,6 +716,10 @@ class GameHubHandler(BaseHTTPRequestHandler):
             self._send_html(render_owner_messages_page())
             return
 
+        if path == "/owner-chat-messages":
+            self._send_html(render_owner_chat_messages_page())
+            return
+
         if path == "/assets/background.png":
             self._send_background()
             return
@@ -739,6 +800,23 @@ class GameHubHandler(BaseHTTPRequestHandler):
                 return
 
             self._send_html(render_owner_messages_page("削除するメッセージが見つかりませんでした"))
+            return
+
+        if path == "/owner-chat-messages/delete":
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+            form = parse_qs(raw_body)
+
+            try:
+                message_index = int(form.get("message_index", ["-1"])[0])
+            except ValueError:
+                message_index = -1
+
+            if delete_chat_room_message(message_index):
+                self._send_html(render_owner_chat_messages_page("チャットメッセージを削除しました"))
+                return
+
+            self._send_html(render_owner_chat_messages_page("削除するチャットメッセージが見つかりませんでした"))
             return
 
         self.send_error(404)

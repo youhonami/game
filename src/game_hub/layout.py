@@ -21,11 +21,28 @@ STYLE = """
       display: flex;
       flex-direction: column;
       width: 280px;
-      min-height: 100vh;
+      height: 100vh;
       padding: 42px 28px;
+      overflow-y: auto;
+      scrollbar-color: rgba(150, 235, 255, 0.72) rgba(4, 18, 36, 0.88);
+      scrollbar-width: thin;
       background: rgba(4, 18, 36, 0.88);
       border-right: 2px solid rgba(120, 225, 255, 0.45);
       box-shadow: 12px 0 36px rgba(0, 0, 0, 0.32);
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: rgba(4, 18, 36, 0.88);
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(150, 235, 255, 0.72);
+      border: 2px solid rgba(4, 18, 36, 0.88);
+      border-radius: 999px;
     }
 
     .sidebar h1 {

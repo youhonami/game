@@ -71,8 +71,9 @@ STYLE = """
       padding: 18px 20px;
       color: #ffffff;
       text-decoration: none;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
+      white-space: nowrap;
       background: rgba(14, 90, 140, 0.72);
       border: 1px solid rgba(150, 235, 255, 0.78);
       border-radius: 16px;

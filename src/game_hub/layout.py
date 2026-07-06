@@ -241,6 +241,57 @@ STYLE = """
       height: 520px;
     }
 
+    .page-tetris main {
+      padding: 16px 28px;
+    }
+
+    .page-tetris .hero {
+      padding: 18px 28px;
+    }
+
+    .page-tetris .hero h2 {
+      margin-bottom: 8px;
+      font-size: 36px;
+    }
+
+    .page-tetris .hero > p {
+      font-size: 16px;
+    }
+
+    .page-tetris .game-panel {
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    .page-tetris .game-board {
+      width: 240px;
+      height: 480px;
+    }
+
+    .page-tetris .game-info {
+      gap: 8px;
+    }
+
+    .page-tetris .info-card {
+      padding: 10px 12px;
+    }
+
+    .page-tetris .info-card h3 {
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .page-tetris .info-card p,
+    .page-tetris .info-card ul {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .page-tetris .primary-button {
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+
     .game-info {
       display: grid;
       gap: 14px;
@@ -1457,7 +1508,7 @@ def render_page(
 {STYLE}
   </style>
 </head>
-<body>
+<body class="page-{active_page or 'home'}">
   <div class="page">
     <aside class="sidebar">
       <h1><a href="/">Game Menu</a></h1>

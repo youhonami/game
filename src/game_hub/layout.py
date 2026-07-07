@@ -292,6 +292,73 @@ STYLE = """
       font-size: 15px;
     }
 
+    .page-shooting main,
+    .page-puyopuyo main {
+      padding: 16px 28px;
+    }
+
+    .page-shooting .hero,
+    .page-puyopuyo .hero {
+      padding: 18px 28px;
+    }
+
+    .page-shooting .hero h2,
+    .page-puyopuyo .hero h2 {
+      margin-bottom: 8px;
+      font-size: 36px;
+    }
+
+    .page-shooting .hero > p,
+    .page-puyopuyo .hero > p {
+      font-size: 16px;
+    }
+
+    .page-shooting .game-panel,
+    .page-puyopuyo .game-panel {
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    .page-shooting .shooting-board {
+      width: 400px;
+      height: 477px;
+    }
+
+    .page-puyopuyo .puyo-board {
+      width: 200px;
+      height: 400px;
+    }
+
+    .page-shooting .game-info,
+    .page-puyopuyo .game-info {
+      gap: 8px;
+    }
+
+    .page-shooting .info-card,
+    .page-puyopuyo .info-card {
+      padding: 10px 12px;
+    }
+
+    .page-shooting .info-card h3,
+    .page-puyopuyo .info-card h3 {
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .page-shooting .info-card p,
+    .page-shooting .info-card ul,
+    .page-puyopuyo .info-card p,
+    .page-puyopuyo .info-card ul {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .page-shooting .primary-button,
+    .page-puyopuyo .primary-button {
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+
     .game-info {
       display: grid;
       gap: 14px;
